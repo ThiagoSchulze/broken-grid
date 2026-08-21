@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Broken Grid</title>
+  <link rel="stylesheet" href="src/styles/tokens.css">
+  <link rel="stylesheet" href="src/styles/base.css">
+  <link rel="stylesheet" href="src/styles/components.css">
+</head>
+<body>
+  <main class="coluna">
+    <header class="cabecalho">
+      <h1>BROKEN GRID</h1>
+      <p class="subtitulo">Remova o menor número possível de palitos até não sobrar nenhum quadrado completo.</p>
+    </header>
+
+    <section class="controles" id="controles"></section>
+    <section class="banners" id="banners"></section>
+    <section class="stats" id="stats"></section>
+
+    <section class="cartao cartao--tabuleiro">
+      <svg id="tabuleiro" class="tabuleiro" role="application"
+           aria-label="Tabuleiro do Broken Grid"></svg>
+      <ul class="legenda">
+        <li><span class="amostra amostra--removivel"></span>Removível</li>
+        <li><span class="amostra amostra--bloqueado"></span>Bloqueado</li>
+        <li><span class="amostra amostra--quebrado"></span>Quebrado</li>
+      </ul>
+    </section>
+
+    <section class="rodape-acoes" id="acoes"></section>
+    <section class="desempenho" id="desempenho" hidden></section>
+    <p class="erro" id="erro" role="alert" hidden></p>
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

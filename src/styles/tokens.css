@@ -1,0 +1,27 @@
+:root {
+  --fundo: #edebe3;
+  --superficie: #ffffff;
+  --tinta: #1b1f22;
+  --tinta-suave: #6b6b6b;
+  --borda: #e0dfd8;
+
+  --acento-ouro: #c4a841;
+  --acento-rosa: #ffafaf;
+  --solucao: #b23a48;
+  --vitoria-fundo: #dceae4;
+  --vitoria-tinta: #2f6f5e;
+  --preto-botao: #111111;
+
+  --palito: #000000;
+  --palito-bloqueado: #9c9284;
+  --palito-quebrado: #d5d3cd;
+
+  --raio: 10px;
+  --espaco-1: 6px;
+  --espaco-2: 12px;
+  --espaco-3: 20px;
+  --coluna-max: 560px;
+
+  --fonte-titulo: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --fonte-texto: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}

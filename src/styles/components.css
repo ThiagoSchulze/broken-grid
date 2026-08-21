@@ -1,0 +1,33 @@
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: var(--espaco-3);
+}
+
+.cartao--tabuleiro { display: flex; flex-direction: column; align-items: center; gap: var(--espaco-2); }
+
+.tabuleiro { width: 100%; max-width: 420px; height: auto; }
+
+.palito__toque { stroke: transparent; stroke-width: 16; fill: none; }
+.palito__linha { stroke-linecap: round; fill: none; }
+
+.palito--removivel .palito__linha { stroke: var(--palito); stroke-width: 6; }
+.palito--bloqueado .palito__linha { stroke: var(--palito-bloqueado); stroke-width: 6; }
+.palito--quebrado .palito__linha { stroke: var(--palito-quebrado); stroke-width: 3; stroke-dasharray: 4 6; }
+.palito--removido { display: none; }
+.palito--solucao .palito__linha { stroke: var(--solucao); stroke-width: 6; }
+
+.palito--removivel { cursor: pointer; }
+.palito--removivel:hover .palito__linha { stroke: var(--solucao); }
+.palito--removivel:focus-visible { outline: 2px solid var(--acento-ouro); outline-offset: 2px; }
+
+.legenda {
+  list-style: none; display: flex; gap: var(--espaco-3); margin: 0; padding: 0;
+  font-size: 0.75rem; color: var(--tinta-suave);
+}
+.legenda li { display: flex; align-items: center; gap: var(--espaco-1); }
+.amostra { width: 14px; height: 2px; display: inline-block; }
+.amostra--removivel { background: var(--palito); }
+.amostra--bloqueado { background: var(--palito-bloqueado); }
+.amostra--quebrado { background: var(--palito-quebrado); }
