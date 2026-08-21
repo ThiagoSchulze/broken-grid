@@ -47,10 +47,10 @@
   font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
 }
 .botao--largo { width: 100%; }
-.botao--preto { background: var(--preto-botao); color: #fff; }
-.botao--ouro { background: var(--acento-ouro); color: var(--tinta); }
-.botao--rosa { background: var(--acento-rosa); color: var(--tinta); }
-.botao--verde { background: var(--vitoria-tinta); color: #fff; }
+.botao--preto { background: var(--preto-botao); color: var(--tinta-clara); }
+.botao--ouro { background: var(--acento-ouro); color: var(--tinta-clara); }
+.botao--rosa { background: var(--acento-rosa); color: var(--tinta-clara); }
+.botao--verde { background: var(--vitoria-tinta); color: var(--tinta-clara); }
 .botao:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .painel-stats { display: flex; padding: var(--espaco-2) 0; }
