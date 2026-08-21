@@ -77,7 +77,7 @@ export async function carregarDataset(n, { buscar = fetch } = {}) {
   try {
     resposta = await buscar(url);
   } catch (erro) {
-    throw new ErroDataset(`falha ao buscar ${url}: ${erro.message}`);
+    throw new ErroDataset(`falha ao buscar ${url}: ${erro?.message ?? String(erro)}`);
   }
   if (!resposta.ok) throw new ErroDataset(`falha ao buscar ${url}: HTTP ${resposta.status}`);
 

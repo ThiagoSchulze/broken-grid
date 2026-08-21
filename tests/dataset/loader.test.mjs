@@ -109,6 +109,20 @@ test('carregarDataset falha com mensagem clara em HTTP ruim ou JSON quebrado', a
   );
 });
 
+test('carregarDataset envolve rejeicao de buscar em ErroDataset', async () => {
+  await assert.rejects(
+    () => carregarDataset(4, { buscar: async () => { throw new Error('conexao perdida'); } }),
+    ErroDataset,
+  );
+});
+
+test('carregarDataset envolve rejeicao nao-Error de buscar em ErroDataset', async () => {
+  await assert.rejects(
+    () => carregarDataset(4, { buscar: async () => { throw 'erro de string'; } }),
+    ErroDataset,
+  );
+});
+
 test('escolherGrade evita repetir a grade atual', () => {
   const dataset = validarDataset(datasetValido());
   for (let i = 0; i < 20; i += 1) {
