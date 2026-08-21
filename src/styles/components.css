@@ -31,3 +31,30 @@
 .amostra--removivel { background: var(--palito); }
 .amostra--bloqueado { background: var(--palito-bloqueado); }
 .amostra--quebrado { background: var(--palito-quebrado); }
+
+.linha-controles { display: flex; align-items: center; gap: var(--espaco-2); padding: var(--espaco-1); }
+
+.seletor { display: flex; flex: 1; }
+.seletor__opcao {
+  flex: 1; border: 0; background: transparent; padding: 8px 0;
+  font: inherit; font-size: 0.8rem; color: var(--tinta-suave);
+  border-radius: 6px; cursor: pointer;
+}
+.seletor__opcao--ativa { background: var(--acento-ouro); color: var(--tinta); font-weight: 700; }
+
+.botao {
+  border: 0; border-radius: 6px; padding: 9px 16px;
+  font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.botao--largo { width: 100%; }
+.botao--preto { background: var(--preto-botao); color: #fff; }
+.botao--ouro { background: var(--acento-ouro); color: var(--tinta); }
+.botao--rosa { background: var(--acento-rosa); color: var(--tinta); }
+.botao--verde { background: var(--vitoria-tinta); color: #fff; }
+.botao:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.painel-stats { display: flex; padding: var(--espaco-2) 0; }
+.bloco-stat { flex: 1; text-align: center; }
+.bloco-stat + .bloco-stat { border-left: 1px solid var(--borda); }
+.bloco-stat__valor { display: block; font-size: 1.3rem; }
+.bloco-stat__rotulo { font-size: 0.7rem; letter-spacing: 0.06em; color: var(--tinta-suave); }
