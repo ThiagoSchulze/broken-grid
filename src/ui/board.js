@@ -77,6 +77,7 @@ export function criarTabuleiro(svg, { aoAtivarPalito } = {}) {
         grupo.setAttribute('tabindex', '0');
         grupo.setAttribute('role', 'button');
         grupo.setAttribute('aria-label', descrever(id, situacao));
+        grupo.removeAttribute('aria-hidden');
       } else {
         grupo.removeAttribute('tabindex');
         grupo.removeAttribute('role');
