@@ -66,3 +66,19 @@
 .banner--solucao { background: var(--acento-rosa); color: var(--tinta-clara); }
 .banner--vitoria { background: var(--vitoria-fundo); color: var(--vitoria-tinta); }
 .banner--vitoria .botao { display: block; margin: var(--espaco-1) auto 0; min-width: 180px; }
+
+.tiles { display: flex; padding: var(--espaco-2) 0; }
+.tile { flex: 1; text-align: center; padding: 0 var(--espaco-1); }
+.tile + .tile { border-left: 1px solid var(--borda); }
+.tile__valor { display: block; font-size: 1.2rem; }
+.tile__rotulo { font-size: 0.68rem; color: var(--tinta-suave); }
+
+.grafico__titulo { margin: 0 0 var(--espaco-3); font-family: var(--fonte-titulo); font-size: 1rem; text-align: center; }
+.barra { display: grid; grid-template-columns: 110px 1fr 32px; align-items: center; gap: var(--espaco-2); margin-bottom: var(--espaco-2); }
+.barra__rotulo { font-size: 0.72rem; color: var(--tinta-suave); }
+.barra__trilha { background: var(--fundo); border-radius: 3px; height: 16px; }
+.barra__preenchimento { height: 100%; border-radius: 3px; transition: width 200ms ease; }
+.barra--jogador { background: var(--acento-ouro); }
+.barra--referencia { background: var(--vitoria-tinta); }
+.barra__valor { font-size: 0.75rem; font-weight: 700; }
+.grafico__nota { margin: var(--espaco-3) 0 0; font-size: 0.72rem; color: var(--tinta-suave); text-align: center; }
