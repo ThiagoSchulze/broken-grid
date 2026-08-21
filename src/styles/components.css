@@ -58,3 +58,11 @@
 .bloco-stat + .bloco-stat { border-left: 1px solid var(--borda); }
 .bloco-stat__valor { display: block; font-size: 1.3rem; }
 .bloco-stat__rotulo { font-size: 0.7rem; letter-spacing: 0.06em; color: var(--tinta-suave); }
+
+.banner { border-radius: var(--raio); padding: var(--espaco-3); text-align: center; }
+.banner__linha { margin: 0 0 var(--espaco-1); font-size: 0.8rem; }
+.banner__titulo { margin: 0 0 var(--espaco-2); font-family: var(--fonte-titulo); font-size: 1rem; }
+
+.banner--solucao { background: var(--acento-rosa); color: var(--tinta-clara); }
+.banner--vitoria { background: var(--vitoria-fundo); color: var(--vitoria-tinta); }
+.banner--vitoria .botao { display: block; margin: var(--espaco-1) auto 0; min-width: 180px; }
