@@ -49,7 +49,7 @@
 .botao--largo { width: 100%; }
 .botao--preto { background: var(--preto-botao); color: var(--tinta-clara); }
 .botao--ouro { background: var(--acento-ouro); color: var(--tinta-clara); }
-.botao--rosa { background: var(--acento-rosa); color: var(--tinta-clara); }
+.botao--rosa { background: var(--acento-rosa-escuro); color: var(--tinta-clara); }
 .botao--verde { background: var(--vitoria-tinta); color: var(--tinta-clara); }
 .botao:disabled { opacity: 0.5; cursor: not-allowed; }
 
