@@ -64,7 +64,11 @@ Depois é só abrir a URL que ele imprimir.
 npm test           # equivale a: node --test "tests/**/*.test.mjs"
 ```
 
-Runner nativo do Node (`node --test`), sem framework. **Use o glob entre aspas**:
+Runner nativo do Node (`node --test`), sem framework. `tests/ui/app.test.mjs` monta a
+aplicação inteira sobre um stub de DOM mínimo (`tests/ui/dom-stub.mjs`), então o fluxo
+de jogo é testado ponta a ponta sem navegador nem jsdom.
+
+**Use o glob entre aspas**:
 `node --test tests/` falha no Windows — o Node tenta resolver o diretório como
 entrada CommonJS, morre com `Cannot find module` e ainda reporta um falso
 "1 test, 1 fail".
@@ -147,8 +151,14 @@ Esta entrega é a etapa de **interface gráfica** (25/08) do cronograma da disci
   afirma que esse número é ótimo — ela diz "estimativa … ainda não comprovadamente
   ótima". A busca real (guloso + busca exata com poda) é a etapa de **Algoritmos**
   (01/09 e 08/09).
-- ⏳ **Verificação visual pixel-a-pixel** contra os protótipos ainda não foi feita em
-  navegador.
+- ✅ **Verificado em navegador** contra os quatro protótipos de alta fidelidade, sem
+  nenhum erro de CSP ou de módulo no console. Duas diferenças conscientes em relação
+  ao Figma permanecem: os tiles da tela de desempenho não têm os ícones do protótipo,
+  e o gráfico não tem rótulos numéricos no eixo x.
+- ⏳ **Distribuição de dificuldade do dataset**: os grids 6×6 e 7×7 saem todos como
+  `dificil` porque os limiares do gerador são fixos e não escalam com `n`. Nenhum
+  arquivo de `src/ui/` lê esse campo hoje, então não afeta o jogo — mas é uma
+  calibração pendente para a etapa de algoritmos.
 
 ---
 
