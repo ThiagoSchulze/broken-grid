@@ -17,13 +17,14 @@ export async function iniciarAplicacao(documento) {
     controles: documento.querySelector('#controles'),
     acoes: documento.querySelector('#acoes'),
     stats: documento.querySelector('#stats'),
-    banners: documento.querySelector('#banners'),
+    bannerSolucao: documento.querySelector('#banner-solucao'),
+    cardVitoria: documento.querySelector('#card-vitoria'),
     desempenho: documento.querySelector('#desempenho'),
     erro: documento.querySelector('#erro'),
     cartaoTabuleiro: documento.querySelector('.cartao--tabuleiro'),
   };
 
-  const store = criarStore({ vista: 'jogo', solucao: null, config: null, tique: 0 });
+  const store = criarStore({ vista: 'jogo', solucao: null, config: null });
   let jogo = null;
   let dataset = null;
 
@@ -35,12 +36,8 @@ export async function iniciarAplicacao(documento) {
   });
   const stats = criarStats(elementos.stats);
   const desempenho = criarDesempenho(elementos.desempenho);
-  const banners = criarBanners(elementos.banners, {
-    aoJogarNovamente: () => {
-      const { config } = store.obter();
-      if (!config) return;
-      novaGrade(config.n);
-    },
+  const banners = criarBanners(elementos.bannerSolucao, elementos.cardVitoria, {
+    aoJogarNovamente: () => reiniciarGradeAtual(),
     // Busca a solucao de referencia sob demanda, uma unica vez, ANTES de
     // trocar a vista — nunca a partir de um assinante do store (evita
     // atualizar o store durante a propria notificacao dos ouvintes).
@@ -64,11 +61,7 @@ export async function iniciarAplicacao(documento) {
       if (!store.obter().config) return;
       trocarTamanho(n);
     },
-    aoNovoGrid: () => {
-      const { config } = store.obter();
-      if (!config) return;
-      novaGrade(config.n);
-    },
+    aoNovoGrid: () => reiniciarGradeAtual(),
     aoSolucionar: () => {
       if (!store.obter().config) return;
       mostrarSolucao();
@@ -89,7 +82,14 @@ export async function iniciarAplicacao(documento) {
   }
 
   function limparErro() {
+    elementos.erro.textContent = '';
     elementos.erro.hidden = true;
+  }
+
+  function reiniciarGradeAtual() {
+    const { config } = store.obter();
+    if (!config) return;
+    novaGrade(config.n);
   }
 
   async function trocarTamanho(n) {
@@ -148,16 +148,18 @@ export async function iniciarAplicacao(documento) {
       vista: ui.vista,
       podeDesfazer: estadoJogo.historico.length > 0,
     });
+    // A estimativa do card de vitoria nao depende de o jogador ter pedido
+    // 'Solucionar': a referencia ja veio na configuracao da grade.
     banners.renderizar({
       vista: ui.vista,
       status: estadoJogo.status,
-      solucao: ui.solucao,
+      solucao: ui.solucao ?? estimativaDaConfig(ui.config),
       palitosRemovidos: estadoJogo.palitosRemovidos,
     });
 
     // O prototipo da tela de desempenho nao mostra tabuleiro, stats nem os
     // controles (seletor, Novo Grid, Solucionar) — so tiles, grafico e o
-    // card de vitoria, que continua vindo de #banners.
+    // card de vitoria, que vem de #card-vitoria, ja depois de #desempenho.
     elementos.cartaoTabuleiro.hidden = emDesempenho;
     elementos.stats.hidden = emDesempenho;
     elementos.controles.hidden = emDesempenho;
@@ -167,7 +169,7 @@ export async function iniciarAplicacao(documento) {
     if (emDesempenho) {
       desempenho.renderizar(calcularResumo({
         palitosRemovidos: estadoJogo.palitosRemovidos,
-        minimo: ui.solucao?.quantidade ?? null,
+        minimo: (ui.solucao ?? estimativaDaConfig(ui.config))?.quantidade ?? null,
         iniciadoEm: estadoJogo.iniciadoEm,
         finalizadoEm: estadoJogo.finalizadoEm,
       }));
@@ -177,4 +179,14 @@ export async function iniciarAplicacao(documento) {
   store.inscrever(() => desenhar());
 
   await trocarTamanho(TAMANHO_INICIAL);
+}
+
+/**
+ * A quantidade da solucao de referencia vem junto com a grade, entao a
+ * estimativa pode ser exibida sem chamar o solver. Nunca `proven`: e a
+ * mesma referencia nao comprovadamente minima gravada no dataset.
+ */
+function estimativaDaConfig(config) {
+  const quantidade = config?.referencia?.quantidade;
+  return typeof quantidade === 'number' ? { quantidade, proven: false } : null;
 }

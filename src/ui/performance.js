@@ -35,9 +35,7 @@ export function criarDesempenho(elemento) {
       removidos.valor.textContent = String(resumo.palitosRemovidos);
       referencia.valor.textContent = resumo.minimo === null ? '—' : String(resumo.minimo);
       eficiencia.valor.textContent = formatarPercentual(resumo.eficiencia);
-      excedentes.textContent = resumo.excedentes === null
-        ? 'Solução de referência indisponível.'
-        : `${resumo.excedentes} remoção(ões) além da referência.`;
+      excedentes.textContent = textoExcedentes(resumo.excedentes);
 
       const maior = Math.max(resumo.palitosRemovidos, resumo.minimo ?? 0, 1);
       barraJogador.aplicar(resumo.palitosRemovidos, maior);
@@ -89,4 +87,15 @@ function criarBarra(rotulo, classe) {
       valor.textContent = String(quantia);
     },
   };
+}
+
+/**
+ * A referencia do dataset e minimal, nao comprovadamente minima — entao o
+ * jogador pode terminar com MENOS palitos que ela.
+ */
+function textoExcedentes(excedentes) {
+  if (excedentes === null) return 'Solução de referência indisponível.';
+  if (excedentes === 0) return 'Empatou com a solução de referência.';
+  if (excedentes < 0) return `${-excedentes} remoção(ões) a MENOS que a referência.`;
+  return `${excedentes} remoção(ões) além da referência.`;
 }

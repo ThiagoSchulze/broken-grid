@@ -16,7 +16,9 @@ export function analisarId(id) {
   if (partes.length !== 3) return null;
   const [orientacao, linha, coluna] = partes;
   if (orientacao !== HORIZONTAL && orientacao !== VERTICAL) return null;
-  if (!/^\d+$/.test(linha) || !/^\d+$/.test(coluna)) return null;
+  // Sem zeros a esquerda: 'h:00:1' e 'h:0:1' virariam duas chaves distintas
+  // para o mesmo palito, inflando o Map e deixando o palito real vivo.
+  if (!/^(0|[1-9]\d*)$/.test(linha) || !/^(0|[1-9]\d*)$/.test(coluna)) return null;
   return { orientacao, linha: Number(linha), coluna: Number(coluna) };
 }
 
