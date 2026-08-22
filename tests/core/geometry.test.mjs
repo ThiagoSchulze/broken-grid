@@ -10,7 +10,9 @@ test('idPalito e analisarId sao inversos', () => {
 });
 
 test('analisarId rejeita entradas malformadas', () => {
-  for (const ruim of ['x:0:0', 'h:0', 'h:-1:0', 'h:a:0', '', 'h:0:0:0', null]) {
+  // 'h:00:1' e 'h:0:1' sao o mesmo palito: aceitar os dois criaria duas
+  // chaves distintas no Map da grade.
+  for (const ruim of ['x:0:0', 'h:0', 'h:-1:0', 'h:a:0', '', 'h:0:0:0', null, 'h:00:1', 'v:1:01']) {
     assert.equal(analisarId(ruim), null, `deveria rejeitar ${ruim}`);
   }
 });
