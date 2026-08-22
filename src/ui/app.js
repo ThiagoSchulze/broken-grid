@@ -36,13 +36,18 @@ export async function iniciarAplicacao(documento) {
   const stats = criarStats(elementos.stats);
   const desempenho = criarDesempenho(elementos.desempenho);
   const banners = criarBanners(elementos.banners, {
-    aoJogarNovamente: () => novaGrade(store.obter().config.n),
+    aoJogarNovamente: () => {
+      const { config } = store.obter();
+      if (!config) return;
+      novaGrade(config.n);
+    },
     // Busca a solucao de referencia sob demanda, uma unica vez, ANTES de
     // trocar a vista — nunca a partir de um assinante do store (evita
     // atualizar o store durante a propria notificacao dos ouvintes).
     aoVerDesempenho: async () => {
       try {
         const ui = store.obter();
+        if (!ui.config) return;
         const solucao = ui.solucao ?? await resolver(ui.config);
         store.atualizar({ vista: 'desempenho', solucao });
         limparErro();
@@ -51,12 +56,28 @@ export async function iniciarAplicacao(documento) {
       }
     },
   });
+  // Os controles ja estao no DOM enquanto o primeiro dataset carrega, mas
+  // `jogo` e `config` so existem depois. Cada handler checa sua propria
+  // pre-condicao — esconder #controles piscaria a tela inicial.
   const controles = criarControles(elementos.controles, elementos.acoes, {
-    aoEscolherTamanho: (n) => trocarTamanho(n),
-    aoNovoGrid: () => novaGrade(store.obter().config.n),
-    aoSolucionar: () => mostrarSolucao(),
+    aoEscolherTamanho: (n) => {
+      if (!store.obter().config) return;
+      trocarTamanho(n);
+    },
+    aoNovoGrid: () => {
+      const { config } = store.obter();
+      if (!config) return;
+      novaGrade(config.n);
+    },
+    aoSolucionar: () => {
+      if (!store.obter().config) return;
+      mostrarSolucao();
+    },
     aoVoltarJogo: () => store.atualizar({ vista: 'jogo' }),
-    aoDesfazer: () => jogo.desfazer(),
+    aoDesfazer: () => {
+      if (!jogo) return;
+      jogo.desfazer();
+    },
   });
 
   function relatarErro(mensagem) {
