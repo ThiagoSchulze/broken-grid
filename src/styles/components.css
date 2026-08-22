@@ -1,0 +1,98 @@
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: var(--espaco-3);
+}
+
+.cartao--tabuleiro { display: flex; flex-direction: column; align-items: center; gap: var(--espaco-2); }
+
+.tabuleiro { width: 100%; max-width: 420px; height: auto; }
+
+.palito__toque { stroke: transparent; stroke-width: 16; fill: none; }
+.palito__linha { stroke-linecap: round; fill: none; }
+
+.palito--removivel .palito__linha { stroke: var(--palito); stroke-width: 6; }
+.palito--bloqueado .palito__linha { stroke: var(--palito-bloqueado); stroke-width: 6; }
+.palito--quebrado .palito__linha { stroke: var(--palito-quebrado); stroke-width: 3; stroke-dasharray: 4 6; }
+.palito--removido { display: none; }
+.palito--solucao .palito__linha { stroke: var(--solucao); stroke-width: 6; }
+
+.palito--removivel { cursor: pointer; }
+.palito--removivel:hover .palito__linha { stroke: var(--solucao); }
+.palito--removivel:focus-visible { outline: 2px solid var(--acento-ouro); outline-offset: 2px; }
+
+.legenda {
+  list-style: none; display: flex; gap: var(--espaco-3); margin: 0; padding: 0;
+  font-size: 0.75rem; color: var(--tinta-suave);
+}
+.legenda li { display: flex; align-items: center; gap: var(--espaco-1); }
+.amostra { width: 14px; height: 2px; display: inline-block; }
+.amostra--removivel { background: var(--palito); }
+.amostra--bloqueado { background: var(--palito-bloqueado); }
+.amostra--quebrado { background: var(--palito-quebrado); }
+
+.linha-controles { display: flex; align-items: center; gap: var(--espaco-2); padding: var(--espaco-1); }
+
+.seletor { display: flex; flex: 1; }
+.seletor__opcao {
+  flex: 1; border: 0; background: transparent; padding: 8px 0;
+  font: inherit; font-size: 0.8rem; color: var(--tinta-suave);
+  border-radius: 6px; cursor: pointer;
+}
+.seletor__opcao--ativa { background: var(--acento-ouro); color: var(--tinta); font-weight: 700; }
+
+.botao {
+  border: 0; border-radius: 6px; padding: 9px 16px;
+  font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.botao--largo { width: 100%; }
+.botao--preto { background: var(--preto-botao); color: var(--tinta-clara); }
+.botao--ouro { background: var(--acento-ouro); color: var(--tinta-clara); }
+.botao--rosa { background: var(--acento-rosa); color: var(--tinta-clara); }
+.botao--verde { background: var(--vitoria-tinta); color: var(--tinta-clara); }
+.botao:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.painel-stats { display: flex; padding: var(--espaco-2) 0; }
+.bloco-stat { flex: 1; text-align: center; }
+.bloco-stat + .bloco-stat { border-left: 1px solid var(--borda); }
+.bloco-stat__valor { display: block; font-size: 1.3rem; }
+.bloco-stat__rotulo { font-size: 0.7rem; letter-spacing: 0.06em; color: var(--tinta-suave); }
+
+.banner { border-radius: var(--raio); padding: var(--espaco-3); text-align: center; }
+.banner__linha { margin: 0 0 var(--espaco-1); font-size: 0.8rem; }
+.banner__titulo { margin: 0 0 var(--espaco-2); font-family: var(--fonte-titulo); font-size: 1rem; }
+
+.banner--solucao { background: var(--acento-rosa); color: var(--tinta-clara); }
+.banner--vitoria { background: var(--vitoria-fundo); color: var(--vitoria-tinta); }
+.banner--vitoria .botao { display: block; margin: var(--espaco-1) auto 0; min-width: 180px; }
+
+.tiles { display: flex; padding: var(--espaco-2) 0; }
+.tile { flex: 1; text-align: center; padding: 0 var(--espaco-1); }
+.tile + .tile { border-left: 1px solid var(--borda); }
+.tile__valor { display: block; font-size: 1.2rem; }
+.tile__rotulo { font-size: 0.68rem; color: var(--tinta-suave); }
+
+.grafico__titulo { margin: 0 0 var(--espaco-3); font-family: var(--fonte-titulo); font-size: 1rem; text-align: center; }
+.barra { display: grid; grid-template-columns: 110px 1fr 32px; align-items: center; gap: var(--espaco-2); margin-bottom: var(--espaco-2); }
+.barra__rotulo { font-size: 0.72rem; color: var(--tinta-suave); }
+.barra__trilha { background: var(--fundo); border-radius: 3px; height: 16px; }
+.barra__preenchimento { height: 100%; border-radius: 3px; transition: width 200ms ease; }
+.barra--jogador { background: var(--acento-ouro); }
+.barra--referencia { background: var(--vitoria-tinta); }
+.barra__valor { font-size: 0.75rem; font-weight: 700; }
+.grafico__nota { margin: var(--espaco-3) 0 0; font-size: 0.72rem; color: var(--tinta-suave); text-align: center; }
+
+/* As secoes que agrupam cartoes precisam do proprio gap: sem isso o cartao
+   do seletor encosta na barra "Solucionar" e os tiles encostam no grafico. */
+.controles, .rodape-acoes, .desempenho {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.desempenho { gap: var(--espaco-2); }
+
+/* `display: contents` faz o banner ser item flex direto da coluna: escondido,
+   ele nao deixa um gap fantasma para tras. */
+.banners { display: contents; }
