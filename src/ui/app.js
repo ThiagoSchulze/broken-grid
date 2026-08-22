@@ -73,7 +73,10 @@ export async function iniciarAplicacao(documento) {
       if (!store.obter().config) return;
       mostrarSolucao();
     },
-    aoVoltarJogo: () => store.atualizar({ vista: 'jogo' }),
+    aoVoltarJogo: () => {
+      if (!jogo) return;
+      store.atualizar({ vista: 'jogo' });
+    },
     aoDesfazer: () => {
       if (!jogo) return;
       jogo.desfazer();
@@ -127,7 +130,10 @@ export async function iniciarAplicacao(documento) {
     }
   }
 
-  function desenhar(estadoJogo = jogo.obterEstado()) {
+  // Assinante do store e tambem do motor: pode ser chamado por qualquer
+  // atualizacao de vista, inclusive antes da primeira partida existir.
+  function desenhar(estadoJogo = jogo?.obterEstado()) {
+    if (!estadoJogo) return;
     const ui = store.obter();
     const emSolucao = ui.vista === 'solucao';
     const emDesempenho = ui.vista === 'desempenho';
