@@ -31,7 +31,8 @@ Um lado `bloqueado` conta como **presente** — ele atrapalha o jogador sem ajud
 eliminar quadrados. É essa assimetria que torna o puzzle interessante.
 
 Tamanhos suportados: **4×4, 5×5, 6×6 e 7×7**, escolhidos antes de carregar a grade.
-Toda jogada é desfazível.
+É possível desfazer **apenas a última jogada**: depois de voltar, o jogador precisa
+remover outro palito antes de desfazer de novo.
 
 ---
 

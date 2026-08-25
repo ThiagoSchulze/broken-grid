@@ -6,6 +6,7 @@ export function criarPartida(config, { agora = () => Date.now() } = {}) {
   let grade;
   let gridId;
   let historico;
+  let podeDesfazer;
   let palitosRemovidos;
   let status;
   let iniciadoEm;
@@ -15,6 +16,7 @@ export function criarPartida(config, { agora = () => Date.now() } = {}) {
     grade = montarGrade(novaConfig);
     gridId = novaConfig.id ?? null;
     historico = [];
+    podeDesfazer = false;
     palitosRemovidos = 0;
     iniciadoEm = agora();
     status = grade.quadradosVivos === 0 ? 'vencido' : 'jogando';
@@ -29,6 +31,7 @@ export function criarPartida(config, { agora = () => Date.now() } = {}) {
       quadradosVivos: grade.quadradosVivos,
       palitosRemovidos,
       historico: Object.freeze([...historico]),
+      podeDesfazer,
       status,
       iniciadoEm,
       finalizadoEm,
@@ -51,6 +54,7 @@ export function criarPartida(config, { agora = () => Date.now() } = {}) {
     registrarAusencia(grade, id);
     historico.push(id);
     palitosRemovidos += 1;
+    podeDesfazer = true;
 
     if (grade.quadradosVivos === 0) {
       status = 'vencido';
@@ -62,12 +66,13 @@ export function criarPartida(config, { agora = () => Date.now() } = {}) {
   }
 
   function desfazer() {
-    if (historico.length === 0) return { ok: false, motivo: 'historico-vazio' };
+    if (!podeDesfazer) return { ok: false, motivo: 'desfazer-indisponivel' };
 
     const id = historico.pop();
     grade.palitos.set(id, ESTADOS.REMOVIVEL);
     registrarPresenca(grade, id);
     palitosRemovidos -= 1;
+    podeDesfazer = false;
 
     if (status === 'vencido') {
       status = 'jogando';

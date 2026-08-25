@@ -138,7 +138,7 @@ export async function iniciarAplicacao(documento) {
     controles.renderizar({
       n: estadoJogo.n,
       vista: ui.vista,
-      podeDesfazer: estadoJogo.historico.length > 0,
+      podeDesfazer: estadoJogo.podeDesfazer,
     });
     banners.renderizar({
       vista: ui.vista,
