@@ -1,4 +1,3 @@
-/** Estado de VISUALIZACAO da interface (vista atual, solucao carregada, tique do relogio). */
 export function criarStore(inicial) {
   let estado = Object.freeze({ ...inicial });
   const ouvintes = new Set();

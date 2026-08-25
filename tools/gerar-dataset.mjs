@@ -1,8 +1,4 @@
-/**
- * Curadoria offline das grades. Nunca roda no navegador.
- *
- * Uso: node tools/gerar-dataset.mjs [--quantidade 20] [--seed 20260819]
- */
+// Uso: node tools/gerar-dataset.mjs [--quantidade 20] [--seed 20260819]
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -14,7 +10,6 @@ const TAMANHOS = [4, 5, 6, 7];
 const MINIMO_QUADRADOS_VIVOS = 4;
 const MAX_TENTATIVAS = 200;
 
-/** Mulberry32: PRNG deterministico, para o dataset ser reproduzivel a partir do seed. */
 export function criarRng(seed) {
   let estado = seed >>> 0;
   return function proximo() {
@@ -35,12 +30,6 @@ export function classificarDificuldade(quantidade) {
   return 'dificil';
 }
 
-/**
- * 1. sorteia quebrados
- * 2. constroi um conjunto de corte que elimina todos os quadrados vivos
- * 3. poda os palitos redundantes do corte (fica irredutivel)
- * 4. sorteia bloqueados apenas FORA do corte -> RN04 e RN05 valem por construcao
- */
 export function gerarGrade(n, rng, { proporcaoQuebrados = 0.12, proporcaoBloqueados = 0.25 } = {}) {
   for (let tentativa = 0; tentativa < MAX_TENTATIVAS; tentativa += 1) {
     const todos = listarPalitos(n);
@@ -53,7 +42,6 @@ export function gerarGrade(n, rng, { proporcaoQuebrados = 0.12, proporcaoBloquea
     while (grade.quadradosVivos > 0) {
       const vivos = grade.quadrados.filter((q) => q.ausentes === 0);
       const alvo = escolher(rng, vivos);
-      // Um quadrado vivo tem todos os lados presentes e, nesta fase, nenhum bloqueado ainda.
       const candidatos = alvo.bordas.filter((b) => grade.palitos.get(b) === ESTADOS.REMOVIVEL);
       const escolhido = escolher(rng, candidatos);
       grade.palitos.set(escolhido, ESTADOS.REMOVIDO);

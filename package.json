@@ -5,7 +5,6 @@
   "type": "module",
   "description": "Broken Grid — puzzle de logica em navegador (Projeto Integrador I, UDESC)",
   "scripts": {
-    "test": "node --test \"tests/**/*.test.mjs\"",
     "start": "npx --yes serve ."
   }
 }

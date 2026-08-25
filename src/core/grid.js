@@ -10,10 +10,6 @@ export class ErroGrade extends Error {
   }
 }
 
-/**
- * Monta a grade a partir da configuracao inicial e constroi, uma unica vez,
- * o indice reverso palito -> quadrados afetados.
- */
 export function montarGrade({ n, quebrados = [], bloqueados = [] } = {}) {
   if (!TAMANHOS_SUPORTADOS.includes(n)) {
     throw new ErroGrade(`tamanho de grade nao suportado: ${n}`);
@@ -58,7 +54,6 @@ function validarLista(lista, n, rotulo) {
   }
 }
 
-/** O palito deixou de estar presente: atualiza so os quadrados que ele toca. */
 export function registrarAusencia(grade, id) {
   for (const i of grade.indice.get(id) ?? []) {
     const quadrado = grade.quadrados[i];
@@ -67,7 +62,6 @@ export function registrarAusencia(grade, id) {
   }
 }
 
-/** O palito voltou a estar presente (desfazer). */
 export function registrarPresenca(grade, id) {
   for (const i of grade.indice.get(id) ?? []) {
     const quadrado = grade.quadrados[i];

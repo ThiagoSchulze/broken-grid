@@ -8,8 +8,6 @@
 
   --acento-ouro: #c4a841;
   --acento-rosa: #ffafaf;
-  /* So o botao "Voltar Ultima Jogada" usa este tom. O banner de solucao e a
-     caixa de erro seguem no rosa claro do prototipo. */
   --acento-rosa-escuro: #e08585;
   --solucao: #b23a48;
   --vitoria-fundo: #dceae4;

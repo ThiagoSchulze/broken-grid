@@ -1,6 +1,5 @@
 import { analisarId, HORIZONTAL } from '../core/geometry.js';
 
-/** Geometria de tela do tabuleiro. Aritmetica pura: nao toca no DOM. */
 export function calcularLayout(n, { margem = 24, passo = 80 } = {}) {
   const lado = margem * 2 + n * passo;
   return { n, margem, passo, largura: lado, altura: lado };

@@ -1,10 +1,6 @@
 import { montarGrade, registrarAusencia, registrarPresenca } from './grid.js';
 import { ESTADOS, motivoRecusa } from './rules.js';
 
-/**
- * Estado da partida. Vive em closure: a interface so o le por obterEstado()
- * e so o altera pelas acoes, que validam antes de aplicar.
- */
 export function criarPartida(config, { agora = () => Date.now() } = {}) {
   const ouvintes = new Set();
   let grade;

@@ -83,8 +83,6 @@
 .barra__valor { font-size: 0.75rem; font-weight: 700; }
 .grafico__nota { margin: var(--espaco-3) 0 0; font-size: 0.72rem; color: var(--tinta-suave); text-align: center; }
 
-/* As secoes que agrupam cartoes precisam do proprio gap: sem isso o cartao
-   do seletor encosta na barra "Solucionar" e os tiles encostam no grafico. */
 .controles, .rodape-acoes, .desempenho {
   display: flex;
   flex-direction: column;
@@ -93,6 +91,5 @@
 
 .desempenho { gap: var(--espaco-2); }
 
-/* `display: contents` faz o banner ser item flex direto da coluna: escondido,
-   ele nao deixa um gap fantasma para tras. */
+/* item flex direto da coluna: escondido, nao deixa gap para tras */
 .banners { display: contents; }

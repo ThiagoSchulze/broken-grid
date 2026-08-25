@@ -11,10 +11,6 @@ export class ErroDataset extends Error {
   }
 }
 
-/**
- * Valida a FORMA do dataset. Solucionabilidade (RN04/RN05) e responsabilidade
- * da curadoria em tools/gerar-dataset.mjs, conforme o RF11.
- */
 export function validarDataset(dados) {
   if (!dados || typeof dados !== 'object') throw new ErroDataset('dataset vazio ou invalido');
   if (dados.schemaVersion !== VERSAO_SUPORTADA) {

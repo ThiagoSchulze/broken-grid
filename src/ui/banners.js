@@ -1,9 +1,3 @@
-/**
- * Os dois banners moram em contêineres SEPARADOS porque os protótipos os
- * posicionam em lugares diferentes: o banner rosa de modo solução fica logo
- * abaixo da barra de ação, e o card verde de vitória fica no fim da página,
- * depois do tabuleiro (alta-03) ou depois do gráfico (alta-04).
- */
 export function criarBanners(elementoSolucao, elementoVitoria, manipuladores = {}) {
   const bannerSolucao = document.createElement('div');
   bannerSolucao.className = 'banner banner--solucao';

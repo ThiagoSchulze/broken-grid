@@ -38,9 +38,6 @@ export async function iniciarAplicacao(documento) {
   const desempenho = criarDesempenho(elementos.desempenho);
   const banners = criarBanners(elementos.bannerSolucao, elementos.cardVitoria, {
     aoJogarNovamente: () => reiniciarGradeAtual(),
-    // Busca a solucao de referencia sob demanda, uma unica vez, ANTES de
-    // trocar a vista — nunca a partir de um assinante do store (evita
-    // atualizar o store durante a propria notificacao dos ouvintes).
     aoVerDesempenho: async () => {
       try {
         const ui = store.obter();
@@ -53,9 +50,6 @@ export async function iniciarAplicacao(documento) {
       }
     },
   });
-  // Os controles ja estao no DOM enquanto o primeiro dataset carrega, mas
-  // `jogo` e `config` so existem depois. Cada handler checa sua propria
-  // pre-condicao — esconder #controles piscaria a tela inicial.
   const controles = criarControles(elementos.controles, elementos.acoes, {
     aoEscolherTamanho: (n) => {
       if (!store.obter().config) return;
@@ -130,8 +124,6 @@ export async function iniciarAplicacao(documento) {
     }
   }
 
-  // Assinante do store e tambem do motor: pode ser chamado por qualquer
-  // atualizacao de vista, inclusive antes da primeira partida existir.
   function desenhar(estadoJogo = jogo?.obterEstado()) {
     if (!estadoJogo) return;
     const ui = store.obter();
@@ -148,8 +140,6 @@ export async function iniciarAplicacao(documento) {
       vista: ui.vista,
       podeDesfazer: estadoJogo.historico.length > 0,
     });
-    // A estimativa do card de vitoria nao depende de o jogador ter pedido
-    // 'Solucionar': a referencia ja veio na configuracao da grade.
     banners.renderizar({
       vista: ui.vista,
       status: estadoJogo.status,
@@ -157,9 +147,6 @@ export async function iniciarAplicacao(documento) {
       palitosRemovidos: estadoJogo.palitosRemovidos,
     });
 
-    // O prototipo da tela de desempenho nao mostra tabuleiro, stats nem os
-    // controles (seletor, Novo Grid, Solucionar) — so tiles, grafico e o
-    // card de vitoria, que vem de #card-vitoria, ja depois de #desempenho.
     elementos.cartaoTabuleiro.hidden = emDesempenho;
     elementos.stats.hidden = emDesempenho;
     elementos.controles.hidden = emDesempenho;
@@ -181,11 +168,6 @@ export async function iniciarAplicacao(documento) {
   await trocarTamanho(TAMANHO_INICIAL);
 }
 
-/**
- * A quantidade da solucao de referencia vem junto com a grade, entao a
- * estimativa pode ser exibida sem chamar o solver. Nunca `proven`: e a
- * mesma referencia nao comprovadamente minima gravada no dataset.
- */
 function estimativaDaConfig(config) {
   const quantidade = config?.referencia?.quantidade;
   return typeof quantidade === 'number' ? { quantidade, proven: false } : null;

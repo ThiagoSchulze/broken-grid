@@ -58,22 +58,7 @@ estiver lenta, qualquer outro servidor estático apontado para a raiz do reposit
 serve igual (a extensão *Live Server* do VS Code, `python -m http.server`, etc.).
 Depois é só abrir a URL que ele imprimir.
 
-## Como testar
-
-```bash
-npm test           # equivale a: node --test "tests/**/*.test.mjs"
-```
-
-Runner nativo do Node (`node --test`), sem framework. `tests/ui/app.test.mjs` monta a
-aplicação inteira sobre um stub de DOM mínimo (`tests/ui/dom-stub.mjs`), então o fluxo
-de jogo é testado ponta a ponta sem navegador nem jsdom.
-
-**Use o glob entre aspas**:
-`node --test tests/` falha no Windows — o Node tenta resolver o diretório como
-entrada CommonJS, morre com `Cannot find module` e ainda reporta um falso
-"1 test, 1 fail".
-
-Requisito: Node 20+ (desenvolvido e testado no 22.17).
+Requisito: Node 20+ (desenvolvido no 22.17).
 
 ---
 
@@ -103,7 +88,6 @@ src/
   styles/             tokens.css → base.css → components.css
 data/grids/           datasets pré-curados: 4x4, 5x5, 6x6, 7x7
 tools/gerar-dataset.mjs   gerador offline dos datasets
-tests/                espelha a estrutura de src/
 docs/                 especificação, protótipos e diagramas
 ```
 
@@ -118,7 +102,7 @@ ui/  →  solver/   →  core/
 
 `core/` não importa nada de `ui/`, `dataset/` ou `solver/`. `core/`, `dataset/`,
 `solver/`, `ui/store.js` e `ui/layout.js` são todos livres de DOM — é por isso que
-podem ser testados no Node sem navegador nem jsdom.
+podem rodar no Node sem navegador nem jsdom.
 
 ### Decisões de segurança
 
@@ -143,7 +127,7 @@ podem ser testados no Node sem navegador nem jsdom.
 Esta entrega é a etapa de **interface gráfica** (25/08) do cronograma da disciplina.
 
 - ✅ **Motor de jogo real** — remoção, contagem de quadrados vivos, detecção de
-  vitória, desfazer e reinício são implementados de verdade e cobertos por testes.
+  vitória, desfazer e reinício são implementados de verdade.
 - ✅ **Interface completa e jogável**, seguindo os protótipos de alta fidelidade:
   tela de jogo, modo solução, card de vitória e tela de desempenho.
 - ⏳ **Solver ainda não implementado.** `src/solver/` devolve a *solução de

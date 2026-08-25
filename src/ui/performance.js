@@ -20,8 +20,6 @@ export function criarDesempenho(elemento) {
   const barraJogador = criarBarra('Seu Resultado', 'barra--jogador');
   const barraReferencia = criarBarra('Ideal (estimado)', 'barra--referencia');
 
-  // Secao 6.7 da especificacao exige os excedentes no resumo; o prototipo tem
-  // apenas quatro tiles, entao eles entram como legenda abaixo do grafico.
   const excedentes = document.createElement('p');
   excedentes.className = 'grafico__nota';
 
@@ -89,10 +87,6 @@ function criarBarra(rotulo, classe) {
   };
 }
 
-/**
- * A referencia do dataset e minimal, nao comprovadamente minima — entao o
- * jogador pode terminar com MENOS palitos que ela.
- */
 function textoExcedentes(excedentes) {
   if (excedentes === null) return 'Solução de referência indisponível.';
   if (excedentes === 0) return 'Empatou com a solução de referência.';

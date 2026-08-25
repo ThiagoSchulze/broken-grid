@@ -24,9 +24,6 @@ export function criarControles(elementoTopo, elementoAcoes, manipuladores = {}) 
 
   const solucionar = criarBotao('Solucionar', 'botao botao--ouro botao--largo', () => manipuladores.aoSolucionar?.());
   const voltarJogo = criarBotao('Voltar ao Jogo', 'botao botao--ouro botao--largo', () => manipuladores.aoVoltarJogo?.());
-  // Estado inicial explicito: se a carga do dataset falhar, `renderizar`
-  // nunca roda e a barra ficaria com 'Solucionar' e 'Voltar ao Jogo'
-  // empilhados ao lado da mensagem de erro.
   voltarJogo.hidden = true;
   elementoTopo.append(linhaTopo, solucionar, voltarJogo);
 
