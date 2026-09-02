@@ -102,9 +102,23 @@ solução. Entra na resposta obrigatória, cobre tudo o que cobre, e o passo rep
 quadrados cria novos forçados. Em grades com muitos bloqueados, que são as piores para a
 busca, essa regra sozinha costuma fixar boa parte da solução.
 
-**Dominância.** Se a máscara do quadrado A contém a de B, cobrir B cobre A — A sai da
-instância. Custo `O(q² × palavras)`: no 7×7, cerca de 78 mil operações de inteiro. O ganho
-é grande porque quadrados grandes quase sempre dominam algum quadrado menor contido neles.
+**Dominância entre quadrados.** Se a máscara do quadrado A contém a de B, cobrir B cobre A
+— A sai da instância. Custo `O(q² × palavras)`: no 7×7, cerca de 78 mil operações de
+inteiro. O ganho é grande porque quadrados grandes quase sempre dominam algum quadrado
+menor contido neles.
+
+**Dominância entre palitos.** Se os quadrados ativos cobertos pelo palito `p` são um
+subconjunto dos cobertos por `r`, então `p` nunca é necessário: qualquer solução que use
+`p` continua válida trocando-o por `r`. O palito `p` sai da instância — some das máscaras
+de todos os quadrados. Custo `O(m² × palavras)`: no 7×7, cerca de 32 mil operações.
+Desempate por índice quando as coberturas são iguais, para não descartar os dois.
+
+**É essa terceira regra que faz o ponto fixo iterar.** As duas primeiras, sozinhas, não
+alteram o grau dos quadrados (escolher um palito só remove quadrados cobertos, nunca reduz
+o conjunto de lados dos que restam) — logo convergiriam numa passada só. Descartar um
+palito, ao contrário, encolhe as máscaras dos quadrados, o que pode criar novos quadrados
+de grau 1, que forçam novos palitos, que permitem novos descartes. O laço termina porque
+cada passada ou não muda nada, ou remove ao menos um quadrado ou um palito.
 
 Guloso e exato consomem a **mesma** instância reduzida, então os números dos dois são
 comparáveis diretamente no bloco de diagnóstico.
@@ -158,13 +172,18 @@ Achar cedo uma solução boa aperta o teto e poda o resto da árvore.
 
 **Poda:** `|solução parcial| + cotaInferior(descobertos) ≥ melhor` → descarta o ramo.
 
-**Propagação em cada nó:** depois de escolher um palito, reaplica os forçados. Os palitos
-fixados assim entram na contagem do nó, não como novo nível da árvore.
+**Sem propagação de forçados dentro do nó.** Ela seria inútil: o grau de um quadrado não
+muda durante a busca (cobrir quadrados não encolhe as máscaras dos que restam), e o
+pré-processamento já eliminou todo quadrado de grau 1. Toda a redução acontece uma vez, na
+seção 5, e o nó só decide.
 
 **Pilha explícita, não recursão.** Cada quadro guarda a máscara de descobertos, a lista de
-candidatos, o índice do próximo e os palitos já fixados naquele nó. Desfazer é restaurar a
-máscara do quadro. Isso evita estouro de pilha e — mais importante — permite **parar a
-busca no meio e retomá-la depois**, que é o que o fatiamento exige.
+candidatos ordenada, o índice do próximo e a profundidade. O palito escolhido em cada nível
+fica num vetor `caminho`, indexado pela profundidade, de onde a solução é reconstruída sem
+alocar nada por nó. As máscaras de trabalho são buffers pré-alocados por profundidade — a
+profundidade é limitada pelo teto do guloso, então são poucas dezenas. Desfazer é apenas
+voltar um quadro. Isso evita estouro de pilha e — mais importante — permite **parar a busca
+no meio e retomá-la depois**, que é o que o fatiamento exige.
 
 **Prova de otimalidade:** se a pilha esvazia sem estourar o orçamento, `melhor` é
 comprovadamente mínimo (`proven: true`). Inclui o caso em que a busca não melhora o guloso:
@@ -264,7 +283,7 @@ que a interface usa.
 
 | Situação | Comportamento |
 | --- | --- |
-| Nenhum quadrado vivo na grade inicial | `{ palitos: [], quantidade: 0, proven: true, origem: 'exato' }` |
+| Nenhum quadrado vivo na grade inicial | `{ palitos: [], quantidade: 0, proven: true }` — a busca conclui sem visitar nó nenhum |
 | Quadrado vivo sem lado removível | `ErroSolver` — instância impossível, dataset adulterado |
 | Orçamento estourado | Melhor conhecido, `proven: false`, `concluiu: false` |
 | Busca abortada (troca de grade) | Rejeita com `ErroSolver` marcado `cancelado`; o `app.js` silencia |
