@@ -84,7 +84,7 @@ function montar(instancia, reducao, guloso, caminho, extras) {
 
 function notificar(aoMelhorar, parcial) {
   const retorno = aoMelhorar?.(parcial);
-  // rejeicao do gancho de notificacao e descartada de proposito: nao pode derrubar o host
+  // aoMelhorar async que rejeita nao pode virar unhandled rejection
   if (retorno && typeof retorno.then === 'function') retorno.catch(() => {});
 }
 

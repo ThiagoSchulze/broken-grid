@@ -12,7 +12,7 @@ function checar(nome, condicao, detalhe = '') {
     console.log(`  ok    ${nome}`);
   } else {
     falhas += 1;
-    console.log(`  FALHA ${nome}${detalhe ? ` — ${detalhe}` : ''}`);
+    console.log(`  FALHA ${nome}${detalhe ? `: ${detalhe}` : ''}`);
   }
 }
 
@@ -454,8 +454,8 @@ function imprimirBenchmark(linhas) {
     const piorMs = Math.max(...doTamanho.map((l) => l.msExato));
     const excedente = doTamanho.reduce((soma, l) => soma + (l.guloso - l.exato), 0) / doTamanho.length;
     console.log(
-      `${n}x${n}: ${provadas}/${doTamanho.length} provadas · pior tempo do exato ${piorMs.toFixed(1)} ms · `
-      + `o guloso excede o melhor achado em ${excedente.toFixed(2)} palito(s) em media`,
+      `${n}x${n}: ${provadas}/${doTamanho.length} provadas, pior tempo do exato ${piorMs.toFixed(1)} ms, `
+      + `guloso ${excedente.toFixed(2)} palito(s) acima do exato em media`,
     );
   }
 }
