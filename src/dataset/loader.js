@@ -38,19 +38,6 @@ export function validarDataset(dados) {
     if (grid.dificuldade !== undefined && !DIFICULDADES.includes(grid.dificuldade)) {
       throw new ErroDataset(`${grid.id}: dificuldade invalida ${grid.dificuldade}`);
     }
-
-    const referencia = grid.referencia;
-    if (!referencia || typeof referencia !== 'object') {
-      throw new ErroDataset(`${grid.id}: referencia ausente`);
-    }
-    const palitos = listaDePalitos(referencia.palitos, dados.n, `${grid.id}.referencia`);
-    if (referencia.quantidade !== palitos.length) {
-      throw new ErroDataset(`${grid.id}: quantidade da referencia nao bate com a lista`);
-    }
-    for (const id of palitos) {
-      if (quebrados.includes(id)) throw new ErroDataset(`${grid.id}: referencia usa palito quebrado ${id}`);
-      if (bloqueados.includes(id)) throw new ErroDataset(`${grid.id}: referencia usa palito bloqueado ${id}`);
-    }
   }
 
   return dados;
@@ -100,6 +87,5 @@ export function configDaGrade(dataset, grid) {
     n: dataset.n,
     quebrados: grid.quebrados,
     bloqueados: grid.bloqueados,
-    referencia: grid.referencia,
   };
 }

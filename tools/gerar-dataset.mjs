@@ -71,7 +71,6 @@ export function gerarGrade(n, rng, { proporcaoQuebrados = 0.12, proporcaoBloquea
       quebrados,
       bloqueados,
       dificuldade: classificarDificuldade(corte.length),
-      referencia: { palitos: corte, quantidade: corte.length, proven: false },
     };
   }
   throw new Error(`nao foi possivel gerar grade ${n}x${n} em ${MAX_TENTATIVAS} tentativas`);
@@ -93,7 +92,6 @@ export function gerarDataset(n, { seed, quantidade = 20, geradoEm = '2026-08-19'
       quebrados: config.quebrados,
       bloqueados: config.bloqueados,
       dificuldade: config.dificuldade,
-      referencia: config.referencia,
     });
   }
 

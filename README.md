@@ -61,6 +61,13 @@ Depois é só abrir a URL que ele imprimir.
 
 Requisito: Node 20+ (desenvolvido no 22.17).
 
+`node tools/verificar-solver.mjs` valida o solver contra as 80 grades do dataset e
+imprime a comparação entre a heurística gulosa e a busca exata:
+
+```bash
+node tools/verificar-solver.mjs
+```
+
 ---
 
 ## Estrutura
@@ -76,7 +83,12 @@ src/
     engine.js           motor da partida: remover, desfazer, reiniciar
     metrics.js          excedentes, eficiência, tempo
   dataset/loader.js   carrega e VALIDA os JSONs de grade
-  solver/             solução de referência (ver "Estado atual")
+  solver/             algoritmo da solução mínima
+    bits.js             operações de máscara sobre Uint32Array
+    instancia.js        compilação da grade e pré-processamento
+    guloso.js           heurística gulosa (fase 1)
+    exato.js            branch and bound fatiado (fase 2)
+    index.js            contrato: resolver(config, opcoes)
   ui/                 tudo que toca o DOM
     app.js              composição e orquestração
     store.js            estado de interface (vista, solução, config)
@@ -125,25 +137,25 @@ podem rodar no Node sem navegador nem jsdom.
 
 ## Estado atual
 
-Esta entrega é a etapa de **interface gráfica** (25/08) do cronograma da disciplina.
+Esta entrega é a etapa de **algoritmos** (02/09) do cronograma da disciplina.
 
 - ✅ **Motor de jogo real** — remoção, contagem de quadrados vivos, detecção de
   vitória, desfazer e reinício são implementados de verdade.
 - ✅ **Interface completa e jogável**, seguindo os protótipos de alta fidelidade:
   tela de jogo, modo solução, card de vitória e tela de desempenho.
-- ⏳ **Solver ainda não implementado.** `src/solver/` devolve a *solução de
-  referência gravada no dataset*, marcada com `proven: false`. A interface nunca
-  afirma que esse número é ótimo — ela diz "estimativa … ainda não comprovadamente
-  ótima". A busca real (guloso + busca exata com poda) é a etapa de **Algoritmos**
-  (01/09 e 08/09).
+- ✅ **Solver implementado.** `src/solver/` resolve a instância ao vivo, a cada grade:
+  heurística gulosa como teto e busca exata com poda como prova. A busca roda em fatias
+  de 8 ms, então a interface nunca congela, e o número exibido é promovido de
+  "estimativa" para comprovadamente ótimo quando a busca fecha dentro do orçamento
+  (100 ms em 4×4, 5×5 e 6×6, 2000 ms em 7×7).
 - ✅ **Verificado em navegador** contra os quatro protótipos de alta fidelidade, sem
   nenhum erro de CSP ou de módulo no console. Duas diferenças conscientes em relação
   ao Figma permanecem: os tiles da tela de desempenho não têm os ícones do protótipo,
   e o gráfico não tem rótulos numéricos no eixo x.
 - ⏳ **Distribuição de dificuldade do dataset**: os grids 6×6 e 7×7 saem todos como
   `dificil` porque os limiares do gerador são fixos e não escalam com `n`. Nenhum
-  arquivo de `src/ui/` lê esse campo hoje, então não afeta o jogo — mas é uma
-  calibração pendente para a etapa de algoritmos.
+  arquivo de `src/ui/` lê esse campo hoje, então não afeta o jogo — mas a calibração
+  dos limiares por tamanho continua pendente.
 
 ---
 
@@ -160,9 +172,10 @@ node tools/gerar-dataset.mjs --quantidade 30 --seed 12345
 A construção garante **por construção** que toda grade é solucionável e que nenhum
 palito bloqueado é indispensável: os quebrados são sorteados primeiro, um conjunto de
 corte é montado a partir dos quadrados ainda vivos e podado de redundâncias, e só
-então os bloqueados são distribuídos — sempre **fora** do conjunto de corte. Esse
-conjunto de corte é o que fica gravado como solução de referência (daí o
-`proven: false`: ele resolve, mas não há prova de que seja mínimo).
+então os bloqueados são distribuídos — sempre **fora** do conjunto de corte.
+Esse conjunto de corte não é gravado no JSON: ele existe apenas durante a geração, para
+garantir que nenhum palito bloqueado seja indispensável. O número mínimo de cada grade é
+calculado ao vivo pelo solver, a cada partida.
 
 ---
 

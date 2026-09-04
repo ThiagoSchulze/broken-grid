@@ -1,6 +1,6 @@
 import { criarPartida } from '../core/engine.js';
 import { calcularResumo } from '../core/metrics.js';
-import { resolver } from '../solver/index.js';
+import { resolver, ErroSolver } from '../solver/index.js';
 import { carregarDataset, escolherGrade, configDaGrade, ErroDataset } from '../dataset/loader.js';
 import { criarStore } from './store.js';
 import { criarTabuleiro } from './board.js';
@@ -27,6 +27,7 @@ export async function iniciarAplicacao(documento) {
   const store = criarStore({ vista: 'jogo', solucao: null, config: null });
   let jogo = null;
   let dataset = null;
+  let buscaAtual = null;
 
   const tabuleiro = criarTabuleiro(elementos.tabuleiro, {
     aoAtivarPalito: (id) => {
@@ -38,16 +39,10 @@ export async function iniciarAplicacao(documento) {
   const desempenho = criarDesempenho(elementos.desempenho);
   const banners = criarBanners(elementos.bannerSolucao, elementos.cardVitoria, {
     aoJogarNovamente: () => reiniciarGradeAtual(),
-    aoVerDesempenho: async () => {
-      try {
-        const ui = store.obter();
-        if (!ui.config) return;
-        const solucao = ui.solucao ?? await resolver(ui.config);
-        store.atualizar({ vista: 'desempenho', solucao });
-        limparErro();
-      } catch (erro) {
-        relatarErro(`Não foi possível obter a solução de referência: ${erro.message}`);
-      }
+    aoVerDesempenho: () => {
+      if (!store.obter().config) return;
+      store.atualizar({ vista: 'desempenho' });
+      limparErro();
     },
   });
   const controles = criarControles(elementos.controles, elementos.acoes, {
@@ -112,16 +107,31 @@ export async function iniciarAplicacao(documento) {
 
     store.atualizar({ vista: 'jogo', solucao: null, config });
     desenhar(jogo.obterEstado());
+    dispararSolver(config);
   }
 
-  async function mostrarSolucao() {
-    try {
-      const solucao = await resolver(store.obter().config);
-      store.atualizar({ vista: 'solucao', solucao });
-      limparErro();
-    } catch (erro) {
-      relatarErro(`Não foi possível calcular a solução: ${erro.message}`);
-    }
+  function dispararSolver(config) {
+    buscaAtual?.abort();
+    const controlador = new AbortController();
+    buscaAtual = controlador;
+
+    const aplicar = (solucao) => {
+      if (store.obter().config?.id !== config.id) return;
+      store.atualizar({ solucao });
+    };
+
+    resolver(config, { sinal: controlador.signal, aoMelhorar: aplicar })
+      .then(aplicar)
+      .catch((erro) => {
+        if (erro instanceof ErroSolver && erro.cancelado) return;
+        relatarErro(`Não foi possível calcular a solução: ${erro.message}`);
+      });
+  }
+
+  function mostrarSolucao() {
+    if (!store.obter().solucao) return;
+    store.atualizar({ vista: 'solucao' });
+    limparErro();
   }
 
   function desenhar(estadoJogo = jogo?.obterEstado()) {
@@ -143,7 +153,7 @@ export async function iniciarAplicacao(documento) {
     banners.renderizar({
       vista: ui.vista,
       status: estadoJogo.status,
-      solucao: ui.solucao ?? estimativaDaConfig(ui.config),
+      solucao: ui.solucao,
       palitosRemovidos: estadoJogo.palitosRemovidos,
     });
 
@@ -156,7 +166,7 @@ export async function iniciarAplicacao(documento) {
     if (emDesempenho) {
       desempenho.renderizar(calcularResumo({
         palitosRemovidos: estadoJogo.palitosRemovidos,
-        minimo: (ui.solucao ?? estimativaDaConfig(ui.config))?.quantidade ?? null,
+        minimo: ui.solucao?.quantidade ?? null,
         iniciadoEm: estadoJogo.iniciadoEm,
         finalizadoEm: estadoJogo.finalizadoEm,
       }));
@@ -166,9 +176,4 @@ export async function iniciarAplicacao(documento) {
   store.inscrever(() => desenhar());
 
   await trocarTamanho(TAMANHO_INICIAL);
-}
-
-function estimativaDaConfig(config) {
-  const quantidade = config?.referencia?.quantidade;
-  return typeof quantidade === 'number' ? { quantidade, proven: false } : null;
 }
