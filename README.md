@@ -188,5 +188,3 @@ calculado ao vivo pelo solver, a cada partida.
   quatro telas.
 - [`docs/diagramas/`](docs/diagramas) — diagrama de casos de uso e diagramas de
   atividades.
-- [`docs/superpowers/`](docs/superpowers) — documento de design e plano de
-  implementação desta etapa.

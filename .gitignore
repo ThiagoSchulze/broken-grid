@@ -1,3 +1,8 @@
 node_modules/
 .DS_Store
 Thumbs.db
+
+# ferramentas de assistente, nao fazem parte do projeto
+docs/superpowers/
+.superpowers/
+.claude/
