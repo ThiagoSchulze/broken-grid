@@ -26,7 +26,7 @@
         "v:2:5",
         "v:3:2"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "facil"
     },
     {
       "id": "g5-002",
@@ -50,7 +50,7 @@
         "v:3:1",
         "v:3:3"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g5-003",
@@ -112,7 +112,7 @@
         "v:4:4",
         "v:4:5"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g5-005",
@@ -134,7 +134,7 @@
         "v:2:2",
         "v:3:3"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g5-006",
@@ -162,7 +162,7 @@
         "v:2:1",
         "v:4:0"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "facil"
     },
     {
       "id": "g5-007",
@@ -193,7 +193,7 @@
         "v:3:5",
         "v:4:5"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "facil"
     },
     {
       "id": "g5-008",
@@ -218,7 +218,7 @@
         "v:4:4",
         "v:4:5"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g5-009",
@@ -243,7 +243,7 @@
         "v:2:5",
         "v:4:0"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g5-010",
@@ -282,7 +282,7 @@
         "v:0:1",
         "v:0:2"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g5-012",
@@ -335,7 +335,7 @@
         "v:2:5",
         "v:4:4"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "facil"
     },
     {
       "id": "g5-014",
@@ -390,7 +390,7 @@
         "v:2:3",
         "v:3:2"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "facil"
     },
     {
       "id": "g5-016",
@@ -508,7 +508,7 @@
         "v:2:2",
         "v:3:3"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     }
   ]
 }

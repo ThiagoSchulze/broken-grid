@@ -152,10 +152,12 @@ Esta entrega é a etapa de **algoritmos** (02/09) do cronograma da disciplina.
   nenhum erro de CSP ou de módulo no console. Duas diferenças conscientes em relação
   ao Figma permanecem: os tiles da tela de desempenho não têm os ícones do protótipo,
   e o gráfico não tem rótulos numéricos no eixo x.
-- ⏳ **Distribuição de dificuldade do dataset**: os grids 6×6 e 7×7 saem todos como
-  `dificil` porque os limiares do gerador são fixos e não escalam com `n`. Nenhum
-  arquivo de `src/ui/` lê esse campo hoje, então não afeta o jogo — mas a calibração
-  dos limiares por tamanho continua pendente.
+- ✅ **Distribuição de dificuldade do dataset calibrada.** O rótulo deixou de olhar o
+  número absoluto de palitos e passou a olhar a **razão** entre o mínimo comprovado da
+  grade e o mínimo da grade limpa do mesmo tamanho (9, 14, 19 e 26 palitos para 4×4,
+  5×5, 6×6 e 7×7). Com isso as três faixas aparecem em todos os tamanhos — antes 6×6 e
+  7×7 saíam 20/20 `dificil`. Nenhum arquivo de `src/ui/` lê esse campo: ele é metadado
+  de dataset, e o número mínimo mostrado em jogo continua vindo do solver ao vivo.
 
 ---
 
@@ -177,6 +179,32 @@ Esse conjunto de corte não é gravado no JSON: ele existe apenas durante a gera
 garantir que nenhum palito bloqueado seja indispensável. O número mínimo de cada grade é
 calculado ao vivo pelo solver, a cada partida.
 
+### Rótulo de dificuldade
+
+Depois que a grade passa pela deduplicação, o gerador chama o **solver de verdade** com
+orçamento de 60 s e exige `proven: true` — se a busca não fechar, a geração falha em vez
+de gravar um rótulo que dependeria da velocidade da máquina. O mínimo obtido é dividido
+pelo mínimo da grade limpa do mesmo tamanho:
+
+| razão `mínimo / referência` | rótulo |
+| --- | --- |
+| ≤ 0,58 | `facil` |
+| ≤ 0,75 | `medio` |
+| > 0,75 | `dificil` |
+
+A referência sai do próprio solver (9 palitos na 4×4 limpa, 14 na 5×5, 19 na 6×6 e 26 na
+7×7), então nenhum número mágico fica escrito à mão. Distribuição atual das 80 grades:
+
+| tamanho | fácil | médio | difícil |
+| --- | --- | --- | --- |
+| 4×4 | 5 | 6 | 9 |
+| 5×5 | 5 | 9 | 6 |
+| 6×6 | 3 | 13 | 4 |
+| 7×7 | 6 | 9 | 5 |
+
+`node tools/verificar-solver.mjs` recalcula o rótulo de cada uma das 80 grades a partir
+do mínimo provado e falha se o JSON estiver fora de sincronia com o classificador.
+
 ---
 
 ## Documentação
@@ -186,5 +214,8 @@ calculado ao vivo pelo solver, a cada partida.
   uso (UC01–UC10) e regras de negócio.
 - [`docs/prototipos/`](docs/prototipos) — protótipos de média e alta fidelidade das
   quatro telas.
+- [`docs/algoritmo-do-solver.md`](docs/algoritmo-do-solver.md) — guia de estudo do
+  algoritmo: modelagem como cobertura mínima, o que cada arquivo de `src/solver/` faz,
+  linha a linha das partes difíceis, complexidade e roteiro de apresentação.
 - [`docs/diagramas/`](docs/diagramas) — diagrama de casos de uso e diagramas de
   atividades.

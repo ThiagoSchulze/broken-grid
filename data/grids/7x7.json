@@ -76,7 +76,7 @@
         "v:5:7",
         "v:6:6"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-003",
@@ -124,7 +124,7 @@
         "v:6:4",
         "v:6:7"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "facil"
     },
     {
       "id": "g7-004",
@@ -165,7 +165,7 @@
         "v:4:2",
         "v:6:3"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-005",
@@ -203,7 +203,7 @@
         "v:5:7",
         "v:6:6"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "facil"
     },
     {
       "id": "g7-006",
@@ -284,7 +284,7 @@
         "v:1:1",
         "v:4:4"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "facil"
     },
     {
       "id": "g7-008",
@@ -324,7 +324,7 @@
         "v:5:6",
         "v:6:1"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-009",
@@ -368,7 +368,7 @@
         "v:4:7",
         "v:5:5"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-010",
@@ -457,7 +457,7 @@
         "v:6:5",
         "v:6:6"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-012",
@@ -501,7 +501,7 @@
         "v:5:6",
         "v:6:5"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "facil"
     },
     {
       "id": "g7-013",
@@ -577,7 +577,7 @@
         "v:6:4",
         "v:6:7"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-015",
@@ -617,7 +617,7 @@
         "v:4:7",
         "v:6:7"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-016",
@@ -698,7 +698,7 @@
         "v:6:1",
         "v:6:6"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-018",
@@ -735,7 +735,7 @@
         "v:3:4",
         "v:5:6"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "facil"
     },
     {
       "id": "g7-019",
@@ -786,7 +786,7 @@
         "v:5:6",
         "v:6:5"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "medio"
     },
     {
       "id": "g7-020",
@@ -832,7 +832,7 @@
         "v:5:7",
         "v:6:7"
       ],
-      "dificuldade": "dificil"
+      "dificuldade": "facil"
     }
   ]
 }

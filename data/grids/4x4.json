@@ -80,7 +80,7 @@
         "v:2:2",
         "v:3:3"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "dificil"
     },
     {
       "id": "g4-005",
@@ -115,7 +115,7 @@
         "v:2:0",
         "v:3:4"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "dificil"
     },
     {
       "id": "g4-007",
@@ -137,7 +137,7 @@
         "v:3:0",
         "v:3:1"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "facil"
     },
     {
       "id": "g4-008",
@@ -158,7 +158,7 @@
         "v:1:3",
         "v:2:3"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "dificil"
     },
     {
       "id": "g4-009",
@@ -177,7 +177,7 @@
         "v:2:3",
         "v:3:0"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "dificil"
     },
     {
       "id": "g4-010",
@@ -201,7 +201,7 @@
         "v:2:0",
         "v:2:1"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "facil"
     },
     {
       "id": "g4-011",
@@ -218,7 +218,7 @@
         "v:0:0",
         "v:0:4"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "dificil"
     },
     {
       "id": "g4-012",
@@ -236,7 +236,7 @@
         "v:2:1",
         "v:3:4"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "facil"
     },
     {
       "id": "g4-013",
@@ -336,7 +336,7 @@
         "v:1:4",
         "v:2:1"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "dificil"
     },
     {
       "id": "g4-018",
@@ -354,7 +354,7 @@
         "v:0:0",
         "v:3:3"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "facil"
     },
     {
       "id": "g4-019",
@@ -377,7 +377,7 @@
         "v:2:0",
         "v:3:2"
       ],
-      "dificuldade": "medio"
+      "dificuldade": "dificil"
     },
     {
       "id": "g4-020",
