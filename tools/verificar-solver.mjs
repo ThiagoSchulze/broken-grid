@@ -28,6 +28,7 @@ async function principal() {
   await verificarExato();
   await verificarContrato();
   await verificarDataset();
+  await verificarDificuldade();
   await verificarVarredura();
 
   console.log(`\n${total - falhas}/${total} verificacoes passaram`);
@@ -375,10 +376,62 @@ async function verificarDataset() {
   }
 }
 
+async function verificarDificuldade() {
+  const { readFile } = await import('node:fs/promises');
+  const { validarDataset } = await import('../src/dataset/loader.js');
+  const { classificarDificuldade, referenciaDaGradeLimpa, contarDificuldades } = await import('./gerar-dataset.mjs');
+  secao('dificuldade');
+
+  // A referencia e o minimo da grade limpa. Se o solver mudar de resposta aqui,
+  // todo rotulo do dataset muda junto — por isso os valores estao fixados.
+  const esperadas = { 4: 9, 5: 14, 6: 19, 7: 26 };
+  for (const n of [4, 5, 6, 7]) {
+    const referencia = await referenciaDaGradeLimpa(n);
+    checar(`${n}x${n}: referencia da grade limpa`, referencia === esperadas[n], `${referencia}`);
+  }
+
+  checar('razao baixa cai em facil', classificarDificuldade(4, 9) === 'facil');
+  checar('razao no limiar de facil ainda e facil', classificarDificuldade(58, 100) === 'facil');
+  checar('logo acima do limiar vira medio', classificarDificuldade(59, 100) === 'medio');
+  checar('razao no limiar de medio ainda e medio', classificarDificuldade(75, 100) === 'medio');
+  checar('logo acima do limiar vira dificil', classificarDificuldade(76, 100) === 'dificil');
+  checar('grade igual a limpa e dificil', classificarDificuldade(9, 9) === 'dificil');
+
+  let recusou = false;
+  try {
+    classificarDificuldade(3, 0);
+  } catch {
+    recusou = true;
+  }
+  checar('referencia zero e recusada', recusou);
+
+  for (const n of [4, 5, 6, 7]) {
+    const url = new URL(`../data/grids/${n}x${n}.json`, import.meta.url);
+    const dados = validarDataset(JSON.parse(await readFile(url, 'utf8')));
+    const contagem = contarDificuldades(dados.grids);
+
+    checar(
+      `${n}x${n}: toda grade tem rotulo de dificuldade`,
+      dados.grids.every((g) => typeof g.dificuldade === 'string'),
+    );
+    checar(
+      `${n}x${n}: as tres faixas aparecem`,
+      contagem.facil > 0 && contagem.medio > 0 && contagem.dificil > 0,
+      `${contagem.facil}/${contagem.medio}/${contagem.dificil}`,
+    );
+    checar(
+      `${n}x${n}: nenhuma faixa domina o tamanho`,
+      Math.max(contagem.facil, contagem.medio, contagem.dificil) <= dados.grids.length * 0.7,
+      `${contagem.facil} facil, ${contagem.medio} medio, ${contagem.dificil} dificil`,
+    );
+  }
+}
+
 async function verificarVarredura() {
   const { readFile } = await import('node:fs/promises');
   const { validarDataset, configDaGrade } = await import('../src/dataset/loader.js');
   const { resolver } = await import('../src/solver/index.js');
+  const { classificarDificuldade, referenciaDaGradeLimpa } = await import('./gerar-dataset.mjs');
   secao('varredura das 80 grades');
 
   const linhas = [];
@@ -386,6 +439,7 @@ async function verificarVarredura() {
   for (const n of [4, 5, 6, 7]) {
     const url = new URL(`../data/grids/${n}x${n}.json`, import.meta.url);
     const dataset = validarDataset(JSON.parse(await readFile(url, 'utf8')));
+    const referencia = await referenciaDaGradeLimpa(n);
 
     for (const [posicao, grid] of dataset.grids.entries()) {
       const config = configDaGrade(dataset, grid);
@@ -403,6 +457,15 @@ async function verificarVarredura() {
         `${grid.id}: solucao minimal`,
         resultado.palitos.every((_, i) => !elimina(config, resultado.palitos.filter((__, j) => j !== i))),
       );
+
+      if (resultado.proven) {
+        const rotulo = classificarDificuldade(resultado.quantidade, referencia);
+        checar(
+          `${grid.id}: dificuldade bate com o minimo provado`,
+          grid.dificuldade === rotulo,
+          `gravado ${grid.dificuldade}, recalculado ${rotulo} (${resultado.quantidade}/${referencia})`,
+        );
+      }
 
       if (posicao < 3) {
         const repetido = await resolver(config, { orcamentoMs: 5000, fatiaMs: 200 });
@@ -425,6 +488,7 @@ async function verificarVarredura() {
         exato: resultado.quantidade,
         cota: resultado.diagnostico.cotaInferior,
         nos: resultado.diagnostico.exato.nos,
+        dificuldade: grid.dificuldade,
         msGuloso: resultado.diagnostico.guloso.tempoMs,
         msExato: resultado.diagnostico.exato.tempoMs,
         provado: resultado.proven,
@@ -453,9 +517,12 @@ function imprimirBenchmark(linhas) {
     const provadas = doTamanho.filter((l) => l.provado).length;
     const piorMs = Math.max(...doTamanho.map((l) => l.msExato));
     const excedente = doTamanho.reduce((soma, l) => soma + (l.guloso - l.exato), 0) / doTamanho.length;
+    const faixas = ['facil', 'medio', 'dificil']
+      .map((faixa) => `${doTamanho.filter((l) => l.dificuldade === faixa).length} ${faixa}`)
+      .join(', ');
     console.log(
       `${n}x${n}: ${provadas}/${doTamanho.length} provadas, pior tempo do exato ${piorMs.toFixed(1)} ms, `
-      + `guloso ${excedente.toFixed(2)} palito(s) acima do exato em media`,
+      + `guloso ${excedente.toFixed(2)} palito(s) acima do exato em media, ${faixas}`,
     );
   }
 }

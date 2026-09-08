@@ -5,10 +5,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listarPalitos } from '../src/core/geometry.js';
 import { montarGrade, registrarAusencia, registrarPresenca } from '../src/core/grid.js';
 import { ESTADOS } from '../src/core/rules.js';
+import { resolver } from '../src/solver/index.js';
 
 const TAMANHOS = [4, 5, 6, 7];
 const MINIMO_QUADRADOS_VIVOS = 4;
 const MAX_TENTATIVAS = 200;
+
+// A dificuldade e o minimo da grade dividido pelo minimo da grade limpa do mesmo
+// tamanho. A razao normaliza a escala: com limiar absoluto toda 6x6 e toda 7x7
+// caem na faixa "dificil". Limiares calibrados sobre as 80 grades versionadas
+// (ver docs/algoritmo-do-solver.md, secao 9).
+const LIMIAR_FACIL = 0.58;
+const LIMIAR_MEDIO = 0.75;
+
+// Generoso de proposito: o rotulo so vale se o minimo for comprovadamente otimo,
+// senao dependeria da velocidade da maquina que gerou o dataset.
+const ORCAMENTO_MINIMO_MS = 60000;
 
 export function criarRng(seed) {
   let estado = seed >>> 0;
@@ -24,10 +36,29 @@ function escolher(rng, lista) {
   return lista[Math.floor(rng() * lista.length)];
 }
 
-export function classificarDificuldade(quantidade) {
-  if (quantidade <= 4) return 'facil';
-  if (quantidade <= 9) return 'medio';
+export function classificarDificuldade(minimo, referencia) {
+  if (!(referencia > 0)) throw new Error(`referencia invalida para a dificuldade: ${referencia}`);
+  const razao = minimo / referencia;
+  if (razao <= LIMIAR_FACIL) return 'facil';
+  if (razao <= LIMIAR_MEDIO) return 'medio';
   return 'dificil';
+}
+
+export async function minimoProvado(config, rotulo) {
+  const resultado = await resolver(config, { orcamentoMs: ORCAMENTO_MINIMO_MS, fatiaMs: 500 });
+  if (!resultado.proven) {
+    throw new Error(`o solver nao provou o minimo de ${rotulo} em ${ORCAMENTO_MINIMO_MS} ms`);
+  }
+  return resultado.quantidade;
+}
+
+const referencias = new Map();
+
+export async function referenciaDaGradeLimpa(n) {
+  if (!referencias.has(n)) {
+    referencias.set(n, await minimoProvado({ n, quebrados: [], bloqueados: [] }, `grade limpa ${n}x${n}`));
+  }
+  return referencias.get(n);
 }
 
 export function gerarGrade(n, rng, { proporcaoQuebrados = 0.12, proporcaoBloqueados = 0.25 } = {}) {
@@ -66,18 +97,14 @@ export function gerarGrade(n, rng, { proporcaoQuebrados = 0.12, proporcaoBloquea
       (id) => !noCorte.has(id) && !quebradosSet.has(id) && rng() < proporcaoBloqueados,
     );
 
-    return {
-      n,
-      quebrados,
-      bloqueados,
-      dificuldade: classificarDificuldade(corte.length),
-    };
+    return { n, quebrados, bloqueados };
   }
   throw new Error(`nao foi possivel gerar grade ${n}x${n} em ${MAX_TENTATIVAS} tentativas`);
 }
 
-export function gerarDataset(n, { seed, quantidade = 20, geradoEm = '2026-08-19' } = {}) {
+export async function gerarDataset(n, { seed, quantidade = 20, geradoEm = '2026-08-19' } = {}) {
   const rng = criarRng(seed);
+  const referencia = await referenciaDaGradeLimpa(n);
   const grids = [];
   const assinaturas = new Set();
 
@@ -87,15 +114,24 @@ export function gerarDataset(n, { seed, quantidade = 20, geradoEm = '2026-08-19'
     if (assinaturas.has(assinatura)) continue;
     assinaturas.add(assinatura);
 
+    const id = `g${n}-${String(grids.length + 1).padStart(3, '0')}`;
+    const minimo = await minimoProvado({ n, quebrados: config.quebrados, bloqueados: config.bloqueados }, id);
+
     grids.push({
-      id: `g${n}-${String(grids.length + 1).padStart(3, '0')}`,
+      id,
       quebrados: config.quebrados,
       bloqueados: config.bloqueados,
-      dificuldade: config.dificuldade,
+      dificuldade: classificarDificuldade(minimo, referencia),
     });
   }
 
   return { schemaVersion: 1, n, geradoEm, seed, grids };
+}
+
+export function contarDificuldades(grids) {
+  const contagem = { facil: 0, medio: 0, dificil: 0 };
+  for (const grid of grids) contagem[grid.dificuldade] += 1;
+  return contagem;
 }
 
 function lerArgumento(nome, padrao) {
@@ -110,10 +146,16 @@ async function principal() {
   await mkdir(destino, { recursive: true });
 
   for (const n of TAMANHOS) {
-    const dataset = gerarDataset(n, { seed: seedBase + n, quantidade });
+    const dataset = await gerarDataset(n, { seed: seedBase + n, quantidade });
     const arquivo = resolve(destino, `${n}x${n}.json`);
     await writeFile(arquivo, `${JSON.stringify(dataset, null, 2)}\n`, 'utf8');
-    console.log(`${arquivo}: ${dataset.grids.length} grades`);
+
+    const contagem = contarDificuldades(dataset.grids);
+    const referencia = await referenciaDaGradeLimpa(n);
+    console.log(
+      `${arquivo}: ${dataset.grids.length} grades (referencia ${referencia} palitos; `
+      + `${contagem.facil} facil, ${contagem.medio} medio, ${contagem.dificil} dificil)`,
+    );
   }
 }
 
