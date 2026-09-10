@@ -2,6 +2,7 @@
 
 import { criarPartida, estadoInicial } from '../src/core/engine.js';
 import { ESTADOS } from '../src/core/rules.js';
+import { rotuloSolucao } from '../src/ui/rotulos.js';
 
 let total = 0;
 let falhas = 0;
@@ -30,6 +31,7 @@ function todosOsHorizontais(n) {
 
 async function principal() {
   verificarEstadoInicial();
+  verificarRotulos();
 
   console.log(`\n${total - falhas}/${total} verificacoes passaram`);
   process.exitCode = falhas === 0 ? 0 : 1;
@@ -98,6 +100,17 @@ function verificarEstadoInicial() {
     'so os campos de relogio divergem',
     inicial.iniciadoEm === null && typeof daPartida.iniciadoEm === 'number',
   );
+}
+
+function verificarRotulos() {
+  secao('rotuloSolucao');
+
+  checar('provada vira otima', rotuloSolucao({ proven: true, quantidade: 12 }) === 'Solução ótima');
+  checar('nao provada vira aproximada', rotuloSolucao({ proven: false, quantidade: 12 }) === 'Solução aproximada');
+  checar('sem o campo proven vira aproximada', rotuloSolucao({ quantidade: 12 }) === 'Solução aproximada');
+  checar('nula vira aproximada', rotuloSolucao(null) === 'Solução aproximada');
+  checar('ausente vira aproximada', rotuloSolucao(undefined) === 'Solução aproximada');
+  checar('acentuacao preservada', rotuloSolucao({ proven: true }).includes('ótima'));
 }
 
 await principal();

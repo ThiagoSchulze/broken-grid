@@ -1,3 +1,5 @@
+import { rotuloSolucao } from './rotulos.js';
+
 export function criarBanners(elementoSolucao, elementoVitoria, manipuladores = {}) {
   const bannerSolucao = document.createElement('div');
   bannerSolucao.className = 'banner banner--solucao';
@@ -37,9 +39,7 @@ export function criarBanners(elementoSolucao, elementoVitoria, manipuladores = {
     renderizar({ vista, status, solucao, palitosRemovidos }) {
       bannerSolucao.hidden = vista !== 'solucao';
       if (vista === 'solucao' && solucao) {
-        contagemSolucao.textContent = solucao.proven
-          ? `Melhor forma encontrada: ${solucao.quantidade} palito(s).`
-          : `Estimativa: ${solucao.quantidade} palito(s) — ainda não comprovadamente ótima.`;
+        contagemSolucao.textContent = `${rotuloSolucao(solucao)}: ${solucao.quantidade} palito(s).`;
       }
 
       const mostrarVitoria = status === 'vencido' && vista !== 'solucao';
@@ -48,8 +48,8 @@ export function criarBanners(elementoSolucao, elementoVitoria, manipuladores = {
       if (mostrarVitoria) {
         removidosVitoria.textContent = `${palitosRemovidos} palitos removidos`;
         estimativaVitoria.textContent = solucao
-          ? `Estimativa heurística: ${solucao.quantidade} palitos`
-          : 'Estimativa heurística indisponível';
+          ? `${rotuloSolucao(solucao)}: ${solucao.quantidade} palitos`
+          : 'Solução de referência indisponível';
       }
     },
   };

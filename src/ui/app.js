@@ -164,12 +164,13 @@ export async function iniciarAplicacao(documento) {
     elementos.desempenho.hidden = !emDesempenho;
 
     if (emDesempenho) {
-      desempenho.renderizar(calcularResumo({
+      const resumo = calcularResumo({
         palitosRemovidos: estadoJogo.palitosRemovidos,
         minimo: ui.solucao?.quantidade ?? null,
         iniciadoEm: estadoJogo.iniciadoEm,
         finalizadoEm: estadoJogo.finalizadoEm,
-      }));
+      });
+      desempenho.renderizar(resumo, ui.solucao);
     }
   }
 
