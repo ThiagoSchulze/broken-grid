@@ -79,7 +79,7 @@
 .barra__trilha { background: var(--fundo); border-radius: 3px; height: 16px; }
 .barra__preenchimento { height: 100%; border-radius: 3px; transition: width 200ms ease; }
 .barra--jogador { background: var(--acento-ouro); }
-.barra--referencia { background: var(--vitoria-tinta); }
+.barra--referencia { background: var(--referencia-tinta); }
 .barra__valor { font-size: 0.75rem; font-weight: 700; }
 .grafico__nota { margin: var(--espaco-3) 0 0; font-size: 0.72rem; color: var(--tinta-suave); text-align: center; }
 
@@ -105,9 +105,9 @@
 
 /* as duas cores sao as mesmas das barras do grafico logo acima */
 .palito--jogada .palito__linha { stroke: var(--acento-ouro); stroke-width: 6; }
-.palito--otima .palito__linha { stroke: var(--vitoria-tinta); stroke-width: 6; }
+.palito--otima .palito__linha { stroke: var(--referencia-tinta); stroke-width: 6; }
 .amostra--jogada { background: var(--acento-ouro); }
-.amostra--otima { background: var(--vitoria-tinta); }
+.amostra--otima { background: var(--referencia-tinta); }
 
 @media (max-width: 480px) {
   .comparacao__grades { grid-template-columns: 1fr; }

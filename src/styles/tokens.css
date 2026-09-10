@@ -12,6 +12,9 @@
   --solucao: #b23a48;
   --vitoria-fundo: #dceae4;
   --vitoria-tinta: #2f6f5e;
+  /* solucao de referencia no desempenho: nao pode repetir o verde da vitoria,
+     senao a barra e o tabuleiro do solver somem no meio do resto */
+  --referencia-tinta: #0891b2;
   --preto-botao: #111111;
 
   --palito: #000000;
