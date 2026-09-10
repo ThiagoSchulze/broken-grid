@@ -68,6 +68,13 @@ imprime a comparação entre a heurística gulosa e a busca exata:
 node tools/verificar-solver.mjs
 ```
 
+`node tools/verificar-interface.mjs` valida as partes da interface que rodam sem DOM —
+a grade de referência (`estadoInicial`) e os rótulos de otimalidade:
+
+```bash
+node tools/verificar-interface.mjs
+```
+
 ---
 
 ## Estrutura
@@ -93,14 +100,19 @@ src/
     app.js              composição e orquestração
     store.js            estado de interface (vista, solução, config)
     layout.js            geometria de tela (puro, sem DOM)
+    rotulos.js          rotulo de otimalidade (puro, sem DOM)
     board.js            tabuleiro em SVG
     controls.js         seletor de tamanho e barras de ação
     stats.js            painel de estatísticas
     banners.js          banner de modo solução e card de vitória
     performance.js      tela de desempenho
+    comparacao.js       sua jogada x solução, na tela de desempenho
   styles/             tokens.css → base.css → components.css
 data/grids/           datasets pré-curados: 4x4, 5x5, 6x6, 7x7
-tools/gerar-dataset.mjs   gerador offline dos datasets
+tools/
+  gerar-dataset.mjs       gerador offline dos datasets
+  verificar-solver.mjs    confere o solver contra as 80 grades
+  verificar-interface.mjs confere as partes da interface livres de DOM
 docs/                 especificação, protótipos e diagramas
 ```
 
@@ -114,8 +126,8 @@ ui/  →  solver/   →  core/
 ```
 
 `core/` não importa nada de `ui/`, `dataset/` ou `solver/`. `core/`, `dataset/`,
-`solver/`, `ui/store.js` e `ui/layout.js` são todos livres de DOM — é por isso que
-podem rodar no Node sem navegador nem jsdom.
+`solver/`, `ui/store.js`, `ui/layout.js` e `ui/rotulos.js` são todos livres de DOM — é
+por isso que podem rodar no Node sem navegador nem jsdom.
 
 ### Decisões de segurança
 
