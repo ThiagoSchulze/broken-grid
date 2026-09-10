@@ -16,7 +16,7 @@ export function criarDesempenho(elemento) {
 
   const titulo = document.createElement('h2');
   titulo.className = 'grafico__titulo';
-  titulo.textContent = 'Seu Resultado × Solução Real';
+  titulo.textContent = 'Seu Resultado × Solução';
 
   const barraJogador = criarBarra('Seu Resultado', 'barra--jogador');
   const barraReferencia = criarBarra('Solução', 'barra--referencia');
