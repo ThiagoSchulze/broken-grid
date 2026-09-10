@@ -12,19 +12,23 @@ export function criarComparacao(elemento, { aoAlternar } = {}) {
   botao.className = 'botao botao--ouro botao--largo';
   botao.textContent = 'Exibir Solução';
   botao.setAttribute('aria-expanded', 'false');
+  botao.setAttribute('aria-controls', 'comparacao-grades');
+  botao.setAttribute('aria-describedby', 'comparacao-aviso');
   botao.addEventListener('click', () => aoAlternar?.());
 
   const aviso = document.createElement('p');
   aviso.className = 'comparacao__aviso';
-  aviso.textContent = 'Solução indisponível para esta grade.';
+  aviso.id = 'comparacao-aviso';
+  aviso.textContent = 'Solução de referência indisponível.';
   aviso.hidden = true;
 
   const grades = document.createElement('div');
   grades.className = 'comparacao__grades';
+  grades.id = 'comparacao-grades';
   grades.hidden = true;
 
   const suaJogada = criarColuna('Sua solução');
-  const doSolver = criarColuna('Solução ótima');
+  const doSolver = criarColuna('Solução');
   grades.append(suaJogada.raiz, doSolver.raiz);
 
   const legenda = document.createElement('ul');
@@ -49,7 +53,7 @@ export function criarComparacao(elemento, { aoAlternar } = {}) {
       botao.setAttribute('aria-expanded', String(aberto));
       grades.hidden = !aberto;
       legenda.hidden = !aberto;
-      // os tabuleiros so sao construidos quando o painel abre
+      // os palitos so sao pintados quando o painel abre
       if (!aberto) return;
 
       suaJogada.definirRotulo('Sua solução');
@@ -82,7 +86,7 @@ function criarColuna(rotuloInicial) {
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('class', 'tabuleiro');
   svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', rotuloInicial);
+  svg.setAttribute('aria-label', `Tabuleiro: ${rotuloInicial}`);
 
   const contagem = document.createElement('p');
   contagem.className = 'comparacao__contagem';

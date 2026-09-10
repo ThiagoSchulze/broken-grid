@@ -30,7 +30,7 @@ export function criarDesempenho(elemento) {
 
   return {
     renderizar(resumo, solucao = null) {
-      const rotulo = rotuloSolucao(solucao);
+      const rotulo = solucao ? rotuloSolucao(solucao) : 'Solução de referência';
 
       tempo.valor.textContent = resumo.tempoFormatado;
       removidos.valor.textContent = String(resumo.palitosRemovidos);
