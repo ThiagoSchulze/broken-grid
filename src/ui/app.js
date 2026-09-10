@@ -8,6 +8,7 @@ import { criarControles } from './controls.js';
 import { criarStats } from './stats.js';
 import { criarBanners } from './banners.js';
 import { criarDesempenho } from './performance.js';
+import { criarComparacao } from './comparacao.js';
 
 const TAMANHO_INICIAL = 4;
 
@@ -43,6 +44,9 @@ export async function iniciarAplicacao(documento) {
   });
   const stats = criarStats(elementos.stats);
   const desempenho = criarDesempenho(elementos.desempenho);
+  const comparacao = criarComparacao(elementos.desempenho, {
+    aoAlternar: () => store.atualizar({ solucaoVisivel: !store.obter().solucaoVisivel }),
+  });
   const banners = criarBanners(elementos.bannerSolucao, elementos.cardVitoria, {
     aoJogarNovamente: () => reiniciarGradeAtual(),
     aoVerDesempenho: () => {
@@ -186,6 +190,12 @@ export async function iniciarAplicacao(documento) {
         finalizadoEm: estadoJogo.finalizadoEm,
       });
       desempenho.renderizar(resumo, ui.solucao);
+      comparacao.renderizar({
+        estadoOriginal: ui.estadoOriginal,
+        historico: estadoJogo.historico,
+        solucao: ui.solucao,
+        visivel: ui.solucaoVisivel,
+      });
     }
   }
 

@@ -18,8 +18,8 @@
 .palito--removido { display: none; }
 .palito--solucao .palito__linha { stroke: var(--solucao); stroke-width: 6; }
 
-.palito--removivel { cursor: pointer; }
-.palito--removivel:hover .palito__linha { stroke: var(--solucao); }
+.tabuleiro--interativo .palito--removivel { cursor: pointer; }
+.tabuleiro--interativo .palito--removivel:hover .palito__linha { stroke: var(--solucao); }
 .palito--removivel:focus-visible { outline: 2px solid var(--acento-ouro); outline-offset: 2px; }
 
 .legenda {
@@ -93,3 +93,22 @@
 
 /* item flex direto da coluna: escondido, nao deixa gap para tras */
 .banners { display: contents; }
+
+/* comparacao na tela de resultados */
+.comparacao { display: flex; flex-direction: column; gap: var(--espaco-2); }
+.comparacao__aviso { margin: 0; font-size: 0.72rem; color: var(--tinta-suave); text-align: center; }
+.comparacao__grades { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espaco-3); }
+.comparacao__coluna { display: flex; flex-direction: column; align-items: center; gap: var(--espaco-1); }
+.comparacao__titulo { margin: 0; font-family: var(--fonte-titulo); font-size: 0.8rem; text-align: center; }
+.comparacao__contagem { margin: 0; font-size: 0.9rem; font-weight: 700; }
+.comparacao__legenda { justify-content: center; }
+
+/* as duas cores sao as mesmas das barras do grafico logo acima */
+.palito--jogada .palito__linha { stroke: var(--acento-ouro); stroke-width: 6; }
+.palito--otima .palito__linha { stroke: var(--vitoria-tinta); stroke-width: 6; }
+.amostra--jogada { background: var(--acento-ouro); }
+.amostra--otima { background: var(--vitoria-tinta); }
+
+@media (max-width: 480px) {
+  .comparacao__grades { grid-template-columns: 1fr; }
+}
