@@ -1,4 +1,4 @@
-import { criarPartida } from '../core/engine.js';
+import { criarPartida, estadoInicial } from '../core/engine.js';
 import { calcularResumo } from '../core/metrics.js';
 import { resolver, ErroSolver } from '../solver/index.js';
 import { carregarDataset, escolherGrade, configDaGrade, ErroDataset } from '../dataset/loader.js';
@@ -24,7 +24,13 @@ export async function iniciarAplicacao(documento) {
     cartaoTabuleiro: documento.querySelector('.cartao--tabuleiro'),
   };
 
-  const store = criarStore({ vista: 'jogo', solucao: null, config: null });
+  const store = criarStore({
+    vista: 'jogo',
+    solucao: null,
+    config: null,
+    estadoOriginal: null,
+    solucaoVisivel: false,
+  });
   let jogo = null;
   let dataset = null;
   let buscaAtual = null;
@@ -105,7 +111,13 @@ export async function iniciarAplicacao(documento) {
       jogo.inscrever(desenhar);
     }
 
-    store.atualizar({ vista: 'jogo', solucao: null, config });
+    store.atualizar({
+      vista: 'jogo',
+      solucao: null,
+      config,
+      estadoOriginal: estadoInicial(config),
+      solucaoVisivel: false,
+    });
     desenhar(jogo.obterEstado());
     dispararSolver(config);
   }
@@ -140,11 +152,14 @@ export async function iniciarAplicacao(documento) {
     const emSolucao = ui.vista === 'solucao';
     const emDesempenho = ui.vista === 'desempenho';
 
-    tabuleiro.renderizar(estadoJogo, {
+    // no modo solucao a tela inteira descreve a grade original, nao a partida
+    const estadoExibido = emSolucao ? (ui.estadoOriginal ?? estadoJogo) : estadoJogo;
+
+    tabuleiro.renderizar(estadoExibido, {
       solucao: emSolucao ? ui.solucao?.palitos : null,
       interativo: ui.vista === 'jogo',
     });
-    stats.renderizar(estadoJogo);
+    stats.renderizar(estadoExibido);
     controles.renderizar({
       n: estadoJogo.n,
       vista: ui.vista,
