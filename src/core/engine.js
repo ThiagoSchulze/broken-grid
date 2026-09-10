@@ -1,6 +1,35 @@
 import { montarGrade, registrarAusencia, registrarPresenca } from './grid.js';
 import { ESTADOS, motivoRecusa } from './rules.js';
 
+function instantaneo(grade, dados) {
+  return Object.freeze({
+    n: grade.n,
+    gridId: dados.gridId,
+    palitos: Object.freeze(Object.fromEntries(grade.palitos)),
+    quadradosVivos: grade.quadradosVivos,
+    palitosRemovidos: dados.palitosRemovidos,
+    historico: Object.freeze([...dados.historico]),
+    podeDesfazer: dados.podeDesfazer,
+    status: dados.status,
+    iniciadoEm: dados.iniciadoEm,
+    finalizadoEm: dados.finalizadoEm,
+  });
+}
+
+// grade de referencia: nao tem relogio, nem historico, nem remocoes
+export function estadoInicial(config) {
+  const grade = montarGrade(config);
+  return instantaneo(grade, {
+    gridId: config.id ?? null,
+    palitosRemovidos: 0,
+    historico: [],
+    podeDesfazer: false,
+    status: grade.quadradosVivos === 0 ? 'vencido' : 'jogando',
+    iniciadoEm: null,
+    finalizadoEm: null,
+  });
+}
+
 export function criarPartida(config, { agora = () => Date.now() } = {}) {
   const ouvintes = new Set();
   let grade;
@@ -24,17 +53,8 @@ export function criarPartida(config, { agora = () => Date.now() } = {}) {
   }
 
   function obterEstado() {
-    return Object.freeze({
-      n: grade.n,
-      gridId,
-      palitos: Object.freeze(Object.fromEntries(grade.palitos)),
-      quadradosVivos: grade.quadradosVivos,
-      palitosRemovidos,
-      historico: Object.freeze([...historico]),
-      podeDesfazer,
-      status,
-      iniciadoEm,
-      finalizadoEm,
+    return instantaneo(grade, {
+      gridId, palitosRemovidos, historico, podeDesfazer, status, iniciadoEm, finalizadoEm,
     });
   }
 
