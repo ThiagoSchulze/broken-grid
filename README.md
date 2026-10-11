@@ -109,10 +109,15 @@ src/
     comparacao.js       sua jogada x solução, na tela de desempenho
   styles/             tokens.css → base.css → components.css
 data/grids/           datasets pré-curados: 4x4, 5x5, 6x6, 7x7
+hardware/broken_grid/ sketch de teste do tabuleiro 4x4 para o Tinkercad
 tools/
   gerar-dataset.mjs       gerador offline dos datasets
   verificar-solver.mjs    confere o solver contra as 80 grades
   verificar-interface.mjs confere as partes da interface livres de DOM
+  benchmark-solver.mjs    mede guloso x exato em grades de 4x4 a 64x64
+  relatorio-pdf.mjs       gera o relatório de desempenho em PDF a partir do benchmark
+  gerar-grades-arduino.mjs grava as grades 4x4 do dataset no firmware
+  especificacao-hardware-pdf.mjs gera a especificação do hardware em PDF
 docs/                 especificação, protótipos e diagramas
 ```
 
@@ -219,13 +224,91 @@ do mínimo provado e falha se o JSON estiver fora de sincronia com o classificad
 
 ---
 
+## Avaliação experimental
+
+`tools/benchmark-solver.mjs` mede o guloso e o exato com teto de 30 s por instância,
+cada uma num `Worker` próprio, em três bancadas: **A** — as 80 grades do jogo mais a grade
+limpa de cada tamanho; **B** — grades geradas de 8×8 a 14×14, 4 por nível de dificuldade;
+**C** — escala do guloso até 64×64, com e sem as podas de redução. Toda solução é
+validada de forma independente. O resultado vai para `docs/dados/benchmark-solver.json`,
+gravado ao fim de cada bancada.
+
+```bash
+node tools/benchmark-solver.mjs                 # completo: ~50 min
+node tools/benchmark-solver.mjs --bancadas C    # refaz só uma bancada, preservando as outras
+node tools/benchmark-solver.mjs --rapido --teto 3000 --saida /tmp/teste.json   # fumaça
+node tools/relatorio-pdf.mjs                    # JSON -> docs/relatorio-desempenho-algoritmos.pdf
+node tools/relatorio-pdf.mjs --modo dados       # JSON -> docs/dados-experimentais.pdf (anexo só com tabelas)
+```
+
+O relatório é impresso pelo Chrome (ou Edge) em modo headless; se nenhum dos dois estiver
+no caminho padrão, defina `CHROME` com o executável. Para medir grades maiores que 7×7,
+`montarGrade` aceita `n` de 2 a 64; o jogo continua oferecendo só 4×4 a 7×7.
+
+---
+
+## Tabuleiro físico
+
+Um tabuleiro 4×4 leva o jogo para fora do navegador. A especificação fechada está em
+`docs/Instrulçoes.txt`: cada palito é um LED WS2812B (40 no total, em zigue-zague), há dois
+joysticks (H e V) e três botões (REMOVER, VOLTAR e SOLUÇÃO). No tabuleiro final o PC é o
+cérebro e o Arduino Nano é só periférico via Web Serial.
+
+Antes da montagem, `hardware/broken_grid/broken_grid.ino` roda o jogo inteiro só no Arduino
+para validar fiação, ordem dos LEDs e cursor no Tinkercad (Arduino Uno + 40 NeoPixels +
+4 potenciômetros no lugar dos joysticks + 3 botões). O circuito está salvo no Tinkercad como
+**"Broken Grid 4x4 - Tabuleiro (Tinkercad)"**
+(https://www.tinkercad.com/things/33evPOPHUoC), com o sketch já carregado. Os potenciômetros,
+da esquerda para a direita, são H-X (A0), H-Y (A1), V-X (A2) e V-Y (A3); os botões REMOVER,
+VOLTAR e SOLUÇÃO ficam em D2, D3 e D4, com `INPUT_PULLUP`.
+
+```bash
+node tools/gerar-grades-arduino.mjs        # data/grids/4x4.json -> bloco GRADES do sketch
+```
+
+Pelo Monitor Serial dá para jogar sem mexer nos controles: `H D`, `H E`, `H C`, `H B`
+(joystick H para direita, esquerda, cima, baixo), o mesmo com `V`, `REMOVER [id]`,
+`VOLTAR`, `SOLUCAO`, `NOVA`, `GRADE n` e `ESTADO`. O Monitor Serial do Tinkercad envia sem
+quebra de linha, então o sketch fecha o comando após 400 ms sem novos caracteres.
+
+O que o simulador obrigou a fazer diferente da montagem real:
+
+- **LEDs no 5V do Arduino.** O componente "Fonte de energia" do Tinkercad deixa a simulação
+  cerca de 30× mais lenta (1,5% contra 50% do tempo real, medido), e o capacitor de
+  1000 µF também pesa. Na montagem real valem a fonte separada de 5 V / 3 A, o capacitor e
+  o GND comum.
+- **Adafruit_NeoPixel em vez de FastLED**, com o mesmo brilho 80. Com brilho 255, os 40
+  LEDs sobrecarregam o 5V simulado e as cores saem erradas.
+- **Cores do simulador.** No Tinkercad um NeoPixel branco aceso quase não se
+  distingue de um apagado, então o cursor pisca em amarelo e o removido fica azul
+  (`CORES_DO_SIMULADOR`). Na placa
+  real: cursor branco piscando e removido apagado, como na especificação.
+- **Protótipos de função na linha 1.** O Tinkercad insere os protótipos antes de qualquer
+  `typedef`, `enum` ou `struct`, então as assinaturas usam só tipos nativos.
+- **Joysticks calibrados ao ligar.** Girar um potenciômetro durante a simulação grava a
+  posição no projeto; medindo o centro no `setup`, um knob esquecido fora do meio não move
+  o cursor sozinho.
+- **Aba visível.** Com a aba do Tinkercad em segundo plano, o Chrome derruba a simulação
+  para cerca de 2% do tempo real.
+
+---
+
 ## Documentação
 
 - [`docs/Broken Grid - Especificação e Requisitos.pdf`](docs/) — especificação
   completa: requisitos funcionais (RF01–RF13), não funcionais (RNF01–RNF05), casos de
   uso (UC01–UC10) e regras de negócio.
+- [`docs/relatorio-desempenho-algoritmos.pdf`](docs/relatorio-desempenho-algoritmos.pdf) —
+  avaliação experimental do guloso e do exato por tamanho e nível de dificuldade.
+- [`docs/dados-experimentais.pdf`](docs/dados-experimentais.pdf) — anexo de dados do
+  relatório: todas as medições, por instância, com dicionário das colunas.
 - [`docs/prototipos/`](docs/prototipos) — protótipos de média e alta fidelidade das
-  quatro telas.
+  quatro telas e a renderização do protótipo físico.
+- [`docs/hardware/especificacao-hardware.pdf`](docs/hardware/especificacao-hardware.pdf) —
+  tabuleiro físico: lista de componentes, pinagem, energia, diagrama de blocos, esquema
+  elétrico, mapa de LEDs em zigue-zague, regras do cursor, protocolo serial, circuito do
+  Tinkercad, roteiro de demonstração e estrutura impressa em 3D
+  (`node tools/especificacao-hardware-pdf.mjs` gera de novo).
 - [`docs/algoritmo-do-solver.md`](docs/algoritmo-do-solver.md) — guia de estudo do
   algoritmo: modelagem como cobertura mínima, o que cada arquivo de `src/solver/` faz,
   linha a linha das partes difíceis, complexidade e roteiro de apresentação.
