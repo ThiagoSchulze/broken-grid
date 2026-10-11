@@ -1,7 +1,12 @@
 import { listarPalitos, listarQuadrados, palitoValido } from './geometry.js';
 import { ESTADOS } from './rules.js';
 
+// tamanhos oferecidos no jogo e aceitos no dataset
 export const TAMANHOS_SUPORTADOS = Object.freeze([4, 5, 6, 7]);
+
+// faixa aceita pelo nucleo: mais larga que a do jogo para o benchmark medir grades maiores
+export const TAMANHO_MINIMO = 2;
+export const TAMANHO_MAXIMO = 64;
 
 export class ErroGrade extends Error {
   constructor(mensagem) {
@@ -11,7 +16,7 @@ export class ErroGrade extends Error {
 }
 
 export function montarGrade({ n, quebrados = [], bloqueados = [] } = {}) {
-  if (!TAMANHOS_SUPORTADOS.includes(n)) {
+  if (!Number.isInteger(n) || n < TAMANHO_MINIMO || n > TAMANHO_MAXIMO) {
     throw new ErroGrade(`tamanho de grade nao suportado: ${n}`);
   }
   validarLista(quebrados, n, 'quebrados');
