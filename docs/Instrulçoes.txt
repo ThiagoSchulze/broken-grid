@@ -1,0 +1,64 @@
+Você vai me ajudar na montagem física de um projeto da faculdade. Responda em português, de forma direta e prática. Abaixo está tudo que já foi decidido — considere como especificação fechada, mas me avise se encontrar algum erro ou risco.
+
+## Projeto
+Broken Grid: jogo de lógica (variação do Killing Squares) de uma disciplina da UDESC. Uma grade de palitos forma quadrados; o jogador remove o menor número de palitos até não sobrar nenhum quadrado completo. Alguns palitos já vêm "quebrados" (ausentes) e outros "bloqueados" (não podem ser removidos). O jogo já existe em JavaScript no navegador; agora estamos construindo um TABULEIRO FÍSICO com LEDs.
+
+## Arquitetura
+- Tabuleiro 4×4 (versão final). Cada palito é um LED: 40 palitos = 40 LEDs (5 linhas de 4 horizontais + 5 colunas de 4 verticais).
+- O PC é o "cérebro": regras, solver, cursor, cronômetro e estatísticas rodam no JavaScript e aparecem no monitor.
+- Um Arduino Nano funciona só como periférico via USB (Web Serial, no Chrome/Edge): envia os eventos dos controles e recebe a cor de cada LED.
+- No PC ficam: nova partida, estatísticas e desempenho. No tabuleiro ficam só as interações da jogada.
+
+## Controles (no tabuleiro)
+- Joystick H (KY-023): move o cursor entre palitos horizontais. Joystick V: entre verticais. Só um cursor fica ativo por vez; mexer no outro joystick troca a orientação. O clique dos joysticks não é usado.
+- 3 botões de fliperama de 24 mm: REMOVER (verde), VOLTAR (amarelo, desfaz só a última jogada) e SOLUÇÃO (azul, mostra a solução ótima sobre a grade inicial; apertar de novo volta ao jogo onde estava).
+
+## Cores dos LEDs
+- removível: branco | bloqueado: vermelho | quebrado: apagado | removido: apagado
+- cursor: branco piscando | solução: ciano | vitória: verde
+
+## Regras do cursor
+- Só para em palito removível; pula bloqueados, quebrados e removidos.
+- Ao longo da linha: vai para o próximo removível; se não houver, fica parado.
+- Para a linha seguinte: escolhe a próxima linha que tenha algum removível, no palito mais próximo da coluna atual.
+- Depois de remover: vai para o removível mais próximo. Ao trocar de joystick: vai para o removível mais próximo da outra orientação. Ao desfazer: volta para o palito restaurado.
+
+## LEDs
+- WS2812B em plaquinha redonda de ~10 mm (Maker Hero, pacote de 10; compramos 5 pacotes).
+- Cada plaquinha tem 6 pontos de solda: +5V e +5V, DIN e DO, GND e GND. Os dois +5V são ligados entre si, assim como os dois GND. O dado entra no DIN e sai no DO (seguir a seta impressa).
+- Ligação: os DADOS vão em série numa corrente única (DO de um no DIN do próximo); a ALIMENTAÇÃO vai em paralelo (todos no mesmo 5V/GND). São 3 fios entre cada LED.
+- Não existe endereço gravado: o "endereço" é a posição na corrente (LED 0 a 39).
+- Ordem da corrente (zigue-zague): linha de horizontais da esquerda para a direita, depois a linha de verticais logo abaixo da direita para a esquerda, e assim por diante.
+- Fórmula do índice, com palitos identificados como h:linha:coluna e v:linha:coluna:
+  h:r:c → r*9 + c
+  v:r:c → r*9 + 4 + (4 - c)
+
+## Elétrica (Arduino Nano)
+- D6 → resistor de 330 Ω → DIN do LED 0
+- A0/A1 = VRx/VRy do joystick H | A2/A3 = VRx/VRy do joystick V
+- D2 = REMOVER, D3 = VOLTAR, D4 = SOLUÇÃO (outro terminal no GND, INPUT_PULLUP no código)
+- 5V do Arduino alimenta só os joysticks.
+- O Arduino é alimentado pelo USB do PC. Os LEDs são alimentados por uma fonte separada de 5 V e 2 a 3 A, com capacitor de 1000 µF (10 V ou mais) na entrada, faixa do lado do GND.
+- GND comum entre a fonte e o Arduino é obrigatório. NUNCA ligar o +5V da fonte no 5V do Arduino.
+- Tudo funciona a 5 V fixos; o brilho é controlado por software (FastLED.setBrightness(80) e setMaxPowerInVoltsAndMilliamps(5, 1500)). Consumo máximo teórico: 2,4 A; na prática, menos de 1 A.
+
+## Fios e materiais
+- Entre os LEDs: fio de silicone 26 AWG em 3 cores (vermelho = 5V, preto = GND, terceira cor = dados), cerca de 3 m de cada.
+- Da fonte até o primeiro LED: 22 AWG vermelho e preto.
+- Joysticks e botões até o Arduino: jumpers Dupont fêmea-fêmea; botões com terminal faston 4,8 mm ou solda.
+- Estanho 0,8 mm com fluxo, fluxo extra, espaguete termo retrátil de 2 e 3 mm, conector P4 fêmea e chave liga/desliga.
+
+## Estrutura física (impressa em 3D)
+- Palitos de 30 mm × 3 mm. Os palitos não se encostam nos cantos dos quadrados: passo de 38 mm entre cantos (sobra 2,5 mm de folga em cada canto).
+- Tampa de 180 × 180 mm com 40 rasgos de 30 × 6 mm, encaixe redondo de 11 mm × 1,4 mm de profundidade para cada LED embaixo de cada rasgo, e 4 furos de parafuso M3 com rebaixo nos cantos.
+- Centros dos palitos (origem no canto da placa): horizontais em X 33/71/109/147 e Y 166/128/90/52/14; verticais em X 14/52/90/128/166 e Y 147/109/71/33.
+- Base/caixa com o Arduino e a fiação, tampa inferior parafusada, painel frontal com joysticks e botões.
+
+## Teste antes de montar
+- Existe um sketch para Tinkercad (Arduino Uno + 40 NeoPixels + 4 potenciômetros simulando os joysticks + 3 botões) que roda o jogo inteiro só no Arduino, com uma grade fixa, para validar fiação, ordem dos LEDs e cursor.
+- Na montagem real: testar a cada 10 LEDs soldados com um sketch que acende um LED de cada vez.
+
+## Em aberto
+- Se o cronômetro pausa no modo solução.
+- Se ver a solução marca a partida como "com ajuda".
+- O que o tabuleiro mostra antes de começar uma partida.
