@@ -89,6 +89,7 @@ src/
     grid.js             montagem da grade e contador de quadrados vivos
     engine.js           motor da partida: remover, desfazer, reiniciar
     metrics.js          excedentes, eficiência, tempo
+    cursor.js           regras do cursor dos controles (tabuleiro físico e teclado)
   dataset/loader.js   carrega e VALIDA os JSONs de grade
   solver/             algoritmo da solução mínima
     bits.js             operações de máscara sobre Uint32Array
@@ -96,6 +97,9 @@ src/
     guloso.js           heurística gulosa (fase 1)
     exato.js            branch and bound fatiado (fase 2)
     index.js            contrato: resolver(config, opcoes)
+  tabuleiro/          ponte com o Arduino — sem DOM
+    protocolo.js        quadro de LEDs e eventos do Uno (texto, 115200 baud)
+    serial.js           conexão Web Serial com controle de fluxo (OK / reenvio)
   ui/                 tudo que toca o DOM
     app.js              composição e orquestração
     store.js            estado de interface (vista, solução, config)
@@ -107,13 +111,16 @@ src/
     banners.js          banner de modo solução e card de vitória
     performance.js      tela de desempenho
     comparacao.js       sua jogada x solução, na tela de desempenho
+    painel-tabuleiro.js cartão para conectar o tabuleiro físico
   styles/             tokens.css → base.css → components.css
 data/grids/           datasets pré-curados: 4x4, 5x5, 6x6, 7x7
 hardware/broken_grid/ sketch de teste do tabuleiro 4x4 para o Tinkercad
+hardware/broken_grid_periferico/ firmware do tabuleiro final (Uno como periférico do PC)
 tools/
   gerar-dataset.mjs       gerador offline dos datasets
   verificar-solver.mjs    confere o solver contra as 80 grades
   verificar-interface.mjs confere as partes da interface livres de DOM
+  verificar-tabuleiro.mjs confere cursor, protocolo e conexão serial (com um Uno falso)
   benchmark-solver.mjs    mede guloso x exato em grades de 4x4 a 64x64
   relatorio-pdf.mjs       gera o relatório de desempenho em PDF a partir do benchmark
   gerar-grades-arduino.mjs grava as grades 4x4 do dataset no firmware
@@ -290,6 +297,34 @@ O que o simulador obrigou a fazer diferente da montagem real:
   o cursor sozinho.
 - **Aba visível.** Com a aba do Tinkercad em segundo plano, o Chrome derruba a simulação
   para cerca de 2% do tempo real.
+
+### Ponte com o tabuleiro (tabuleiro final)
+
+No tabuleiro final o jogo do navegador é o cérebro e o **Arduino Uno** é só periférico:
+`hardware/broken_grid_periferico/broken_grid_periferico.ino` lê os 4 potenciômetros e os 3
+botões e acende os LEDs que o PC mandar. O protocolo completo está no cabeçalho do `.ino`.
+
+1. Na Arduino IDE, instale a biblioteca **Adafruit NeoPixel**, escolha a placa **Arduino Uno**,
+   abra o `.ino` e clique em **Upload**.
+2. Feche o Monitor Serial da IDE (ele ocupa a porta), suba o jogo (`npm start`) e abra-o no
+   **Chrome ou Edge**.
+3. No cartão **Tabuleiro físico**, clique em **Conectar tabuleiro** e escolha a porta do Uno.
+   O Uno reinicia ao abrir a porta; em ~1 s o cartão mostra **Conectado** e o jogo vai para
+   uma grade 4×4. A cada quadro recebido o LED **L** da placa pisca.
+
+Sem os controles, o teclado faz o papel deles: setas = controle H, W A S D = controle V,
+Enter = REMOVER, Backspace = VOLTAR, X = SOLUÇÃO. Com os potenciômetros ligados, mude
+`POTENCIOMETROS_LIGADOS` para `true` no firmware (com os pinos soltos a leitura é ruído).
+`MODO_POSICAO = true` faz a posição de cada potenciômetro escolher a linha e a coluna do
+cursor; `false` imita um joystick.
+
+O PC só manda o próximo quadro de LEDs depois do `OK` do Uno e reenvia após `ERRO` ou
+silêncio: `leds.show()` desliga as interrupções por ~1,2 ms e bytes que chegam nesse
+intervalo se perdem.
+
+```bash
+node tools/verificar-tabuleiro.mjs     # cursor, protocolo e conexão contra um Uno falso
+```
 
 ---
 

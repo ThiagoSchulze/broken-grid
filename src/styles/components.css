@@ -18,6 +18,16 @@
 .palito--removido { display: none; }
 .palito--solucao .palito__linha { stroke: var(--solucao); stroke-width: 6; }
 
+/* cursor dos controles (tabuleiro físico ou teclado): pisca como o LED */
+.palito--cursor .palito__linha {
+  stroke: var(--acento-ouro); stroke-width: 9;
+  animation: piscar-cursor 600ms steps(1, end) infinite;
+}
+@keyframes piscar-cursor { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) {
+  .palito--cursor .palito__linha { animation: none; }
+}
+
 .tabuleiro--interativo .palito--removivel { cursor: pointer; }
 .tabuleiro--interativo .palito--removivel:hover .palito__linha { stroke: var(--solucao); }
 .palito--removivel:focus-visible { outline: 2px solid var(--acento-ouro); outline-offset: 2px; }
@@ -112,3 +122,18 @@
 @media (max-width: 480px) {
   .comparacao__grades { grid-template-columns: 1fr; }
 }
+
+/* painel do tabuleiro físico */
+.painel-tabuleiro { display: flex; flex-direction: column; gap: var(--espaco-1); }
+.painel-tabuleiro__titulo { margin: 0; font-family: var(--fonte-titulo); font-size: 1rem; }
+.painel-tabuleiro__situacao { margin: 0; font-size: 0.85rem; font-weight: 700; }
+.painel-tabuleiro__situacao::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 6px; vertical-align: middle; background: var(--palito-quebrado);
+}
+.painel-tabuleiro__situacao[data-situacao="conectando"]::before { background: var(--acento-ouro); }
+.painel-tabuleiro__situacao[data-situacao="conectado"]::before { background: var(--vitoria-tinta); }
+.painel-tabuleiro__situacao[data-situacao="erro"]::before { background: var(--solucao); }
+.painel-tabuleiro__detalhe { margin: 0; font-size: 0.75rem; color: var(--tinta-suave); }
+.painel-tabuleiro__detalhe:empty { display: none; }
+.painel-tabuleiro__atalhos { margin: 0; font-size: 0.7rem; color: var(--tinta-suave); }

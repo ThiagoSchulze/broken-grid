@@ -60,7 +60,9 @@ export function criarTabuleiro(svg, { aoAtivarPalito } = {}) {
     return grupo;
   }
 
-  function renderizar(estado, { solucao = null, interativo = true, classeDestaque = 'palito--solucao' } = {}) {
+  function renderizar(estado, {
+    solucao = null, interativo = true, classeDestaque = 'palito--solucao', cursor = null,
+  } = {}) {
     if (estado.n !== nAtual) reconstruir(estado.n);
     const destacados = new Set(solucao ?? []);
     // hover e cursor de mao so valem onde o clique faz alguma coisa
@@ -72,6 +74,7 @@ export function criarTabuleiro(svg, { aoAtivarPalito } = {}) {
 
       const classes = ['palito', `palito--${ROTULO_ESTADO[situacao]}`];
       if (destacados.has(id)) classes.push(classeDestaque);
+      if (id === cursor) classes.push('palito--cursor');
       grupo.setAttribute('class', classes.join(' '));
 
       const clicavel = interativo && situacao === ESTADOS.REMOVIVEL;
