@@ -1,11 +1,12 @@
 // Uso: node tools/especificacao-hardware-pdf.mjs [--saida caminho.pdf] [--html caminho.html]
 //
 // Gera docs/hardware/especificacao-hardware.pdf: especificação do hardware, diagramas e
-// esquemas, integração com o software e o protótipo digital do tabuleiro físico 4x4
+// esquemas, integração com o software (ponte Web Serial com o firmware
+// hardware/broken_grid_periferico) e o protótipo digital do tabuleiro físico 4x4
 // (circuito "Broken Grid 4x4 - Tabuleiro (Tinkercad)").
 // A especificação fechada é docs/Instrulçoes.txt; os diagramas da grade saem da mesma
-// numeração de LEDs do firmware (hardware/broken_grid/broken_grid.ino), então documento e
-// código não divergem.
+// numeração de LEDs dos firmwares (h:r:c -> 9r + c, v:r:c -> 9r + 4 + (4 - c)), então
+// documento e código não divergem.
 import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -149,11 +150,11 @@ function svgNavegacao(quebrados, bloqueados) {
   const xl = x0 + N * passo + 40;
   const leg = [
     ['1', 'início: primeiro palito removível (LED de menor índice)', 'h:0:0'],
-    ['2', 'joystick H → direita: próximo removível da linha', 'h:0:1'],
-    ['3', 'joystick H ↓ baixo: próxima linha com removível, perto da coluna', 'h:1:0'],
+    ['2', 'controle H → direita: próximo removível da linha', 'h:0:1'],
+    ['3', 'controle H ↓ baixo: próxima linha com removível, perto da coluna', 'h:1:0'],
     ['', '(h:1:1 e h:1:2 bloqueados, h:1:3 quebrado: pulados)', ''],
-    ['4', 'joystick V, qualquer direção: troca para o vertical mais próximo', 'v:0:0'],
-    ['5', 'joystick V → direita: pula v:0:1 (quebrado)', 'v:0:2'],
+    ['4', 'controle V, qualquer direção: troca para o vertical mais próximo', 'v:0:0'],
+    ['5', 'controle V → direita: pula v:0:1 (quebrado)', 'v:0:2'],
   ];
   leg.forEach(([n, texto, id], k) => {
     const y = m + 6 + k * 22;
@@ -189,14 +190,14 @@ function svgBlocos() {
   <marker id="pontaV" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
   <path d="M0 0L10 5L0 10z" fill="#c2410c"/></marker></defs>
   ${caixa(20, 20, 150, 76, 'Computador (cérebro)', ['regras · solver · cursor', 'cronômetro · estatísticas', 'Chrome/Edge + Web Serial'], '#eef4fc')}
-  ${caixa(270, 120, 160, 80, 'Arduino Nano', ['ATmega328P · periférico', 'eventos ↑  cores dos LEDs ↓'], '#eef4fc')}
+  ${caixa(270, 120, 160, 80, 'Arduino Uno', ['ATmega328P · periférico', 'eventos ↑  cores dos LEDs ↓'], '#eef4fc')}
   ${caixa(520, 120, 160, 80, 'Grade de LEDs', ['40 × WS2812B', 'corrente única em zigue-zague'], '#fdf3ec')}
-  ${caixa(20, 120, 150, 50, '2 joysticks KY-023', 'H: A0/A1 · V: A2/A3')}
+  ${caixa(20, 120, 150, 50, '4 potenciômetros', 'H: A0/A1 · V: A2/A3')}
   ${caixa(20, 190, 150, 64, '3 botões 24 mm', ['REMOVER D2 · VOLTAR D3', 'SOLUÇÃO D4 (INPUT_PULLUP)'])}
   ${caixa(520, 20, 160, 58, 'Fonte 5 V / 2–3 A', ['P4 + chave liga/desliga', '1000 µF na entrada'])}
   <line x1="172" y1="66" x2="300" y2="118" stroke="#1b1b1a" stroke-width="1.6" marker-end="url(#ponta)" marker-start="url(#ponta)"/>
-  <text x="252" y="76" class="r">USB · Web Serial 9600 baud</text>
-  <text x="252" y="89" class="r">(também alimenta o Nano)</text>
+  <text x="252" y="76" class="r">USB · Web Serial 115200 baud</text>
+  <text x="252" y="89" class="r">(também alimenta o Uno)</text>
   ${seta(170, 145, 268, 155, '', 0, 0)}
   ${seta(170, 222, 268, 185, '', 0, 0)}
   ${seta(430, 160, 518, 160, 'D6 → 330 Ω → DIN', 0, -6)}
@@ -205,26 +206,26 @@ function svgBlocos() {
   <line x1="350" y1="200" x2="350" y2="290" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5 3"/>
   <line x1="350" y1="290" x2="640" y2="290" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5 3"/>
   <line x1="640" y1="290" x2="640" y2="200" stroke="#52514e" stroke-width="1.6" stroke-dasharray="5 3"/>
-  <text x="495" y="306" text-anchor="middle" class="r">GND comum entre fonte e Arduino (obrigatório) · o +5 V da fonte nunca vai no 5V do Nano</text>
-  <text x="220" y="282" text-anchor="middle" class="r">5V do Nano alimenta só os joysticks</text>
+  <text x="495" y="306" text-anchor="middle" class="r">GND comum entre fonte e Arduino (obrigatório) · o +5 V da fonte nunca vai no 5V do Uno</text>
+  <text x="220" y="282" text-anchor="middle" class="r">5V do Uno alimenta só os potenciômetros</text>
 </svg>`;
 }
 
 function svgEsquema() {
   const partes = [];
   partes.push('<rect x="40" y="30" width="140" height="400" rx="6" fill="#eef4fc" stroke="#1b1b1a" stroke-width="1.3"/>');
-  partes.push('<text x="105" y="225" text-anchor="middle" class="t">Arduino</text><text x="105" y="241" text-anchor="middle" class="t">Nano</text>');
+  partes.push('<text x="105" y="225" text-anchor="middle" class="t">Arduino</text><text x="105" y="241" text-anchor="middle" class="t">Uno</text>');
   const pino = (nome, y) => {
     partes.push(`<text x="172" y="${y + 4}" text-anchor="end" class="p">${nome}</text>`);
   };
-  // joysticks: VRx/VRy nas analógicas, +5V e GND do Nano
+  // controles: perna do meio de cada potenciômetro na analógica, pontas no +5V e GND do Uno
   [['H', 'A0', 'A1', 60], ['V', 'A2', 'A3', 150]].forEach(([nome, ax, ay, y]) => {
     pino(ax, y);
     pino(ay, y + 22);
     partes.push(`<line x1="180" y1="${y}" x2="300" y2="${y}" class="fio"/><line x1="180" y1="${y + 22}" x2="300" y2="${y + 22}" class="fio"/>`);
     partes.push(`<rect x="300" y="${y - 18}" width="110" height="66" rx="5" fill="#fff" stroke="#1b1b1a" stroke-width="1.2"/>`);
-    partes.push(`<text x="355" y="${y - 24}" text-anchor="middle" class="n">Joystick ${nome} (KY-023)</text>`);
-    partes.push(`<text x="306" y="${y + 4}" class="c">VRx</text><text x="306" y="${y + 26}" class="c">VRy</text>`);
+    partes.push(`<text x="355" y="${y - 24}" text-anchor="middle" class="n">Controle ${nome} (2 potenciômetros)</text>`);
+    partes.push(`<text x="306" y="${y + 4}" class="c">X</text><text x="306" y="${y + 26}" class="c">Y</text>`);
     partes.push(`<text x="404" y="${y + 4}" text-anchor="end" class="v">+5V</text><text x="404" y="${y + 26}" text-anchor="end" class="g">GND</text>`);
   });
   // botões: pino -> botão -> GND, pull-up interno
@@ -263,11 +264,11 @@ function svgEsquema() {
   partes.push('<text x="585" y="136" text-anchor="middle" class="t">Fonte 5 V / 2–3 A</text>');
   partes.push('<text x="585" y="153" text-anchor="middle" class="c">jack P4 → chave liga/desliga</text>');
   partes.push('<line x1="530" y1="174" x2="530" y2="230" class="fio"/><line x1="650" y1="174" x2="650" y2="230" class="fio"/>');
-  // alimentação do Nano: USB; GND comum com a fonte
+  // alimentação do Uno: USB; GND comum com a fonte
   partes.push('<text x="80" y="420" text-anchor="middle" class="p">USB</text><text x="140" y="420" text-anchor="middle" class="p">GND</text>');
   partes.push('<line x1="140" y1="430" x2="140" y2="465" class="fio"/><text x="140" y="478" text-anchor="middle" class="g">GND</text>');
   partes.push('<text x="80" y="450" text-anchor="middle" class="c">do PC</text>');
-  partes.push('<text x="700" y="478" text-anchor="end" class="c">rótulos iguais indicam o mesmo nó · +5V = 5V do Nano · +5V_LED = fonte (não interligar)</text>');
+  partes.push('<text x="700" y="478" text-anchor="end" class="c">rótulos iguais indicam o mesmo nó · +5V = 5V do Uno · +5V_LED = fonte (não interligar)</text>');
   return `<svg viewBox="0 0 710 490" width="640" role="img" aria-label="Esquema elétrico">
   <style>.fio{stroke:#1b1b1a;stroke-width:1.4;fill:none}.t{font:600 11.5px "Segoe UI",Arial,sans-serif;fill:#1b1b1a}
   .p{font:600 10px Consolas,monospace;fill:#1b1b1a}.n{font:600 9.5px "Segoe UI",Arial,sans-serif;fill:#1b1b1a}
@@ -326,12 +327,14 @@ ${nota ? `<p class="nota">${nota}</p>` : ''}</div>`;
   <h2 class="sem-numero">Resumo</h2>
   <p>O tabuleiro físico leva o <i>Broken Grid</i> para fora do navegador: uma grade 4×4 em que cada um dos
   <b>40 palitos</b> é um LED endereçável WS2812B, ligados numa corrente única em zigue-zague. O jogador usa
-  <b>dois joysticks</b> — <b>H</b> percorre os palitos horizontais e <b>V</b> os verticais — e <b>três botões</b>:
-  <b>REMOVER</b>, <b>VOLTAR</b> (desfaz a última jogada) e <b>SOLUÇÃO</b> (mostra a solução ótima sobre a grade
-  inicial). No tabuleiro final o <b>computador é o cérebro</b>: regras, solver, cursor, cronômetro e estatísticas
-  rodam no jogo em JavaScript, e um <b>Arduino Nano</b> é só periférico via USB (Web Serial), enviando os eventos dos
-  controles e recebendo a cor de cada LED. Antes da montagem, o circuito completo foi construído e validado no
-  <b>Tinkercad Circuits</b> com um sketch que roda a partida inteira no próprio Arduino.</p>
+  <b>dois controles</b> de cursor, cada um com dois potenciômetros — <b>H</b> percorre os palitos horizontais e
+  <b>V</b> os verticais — e <b>três botões</b>: <b>REMOVER</b>, <b>VOLTAR</b> (desfaz a última jogada) e
+  <b>SOLUÇÃO</b> (mostra a solução ótima sobre a grade inicial). No tabuleiro final o <b>computador é o
+  cérebro</b>: regras, solver, cursor, cronômetro e estatísticas rodam no jogo em JavaScript, e um <b>Arduino
+  Uno</b> é só periférico via USB (Web Serial), enviando os eventos dos controles e recebendo a cor de cada LED.
+  Essa ponte está implementada e foi testada com o Uno real. Antes da montagem, o circuito completo também foi
+  construído e validado no <b>Tinkercad Circuits</b> com um sketch que roda a partida inteira no próprio
+  Arduino.</p>
 </section>
 
 <h2>Escopo do protótipo físico</h2>
@@ -345,16 +348,18 @@ possíveis. A divisão de responsabilidades segue a especificação fechada da e
   da grade nos LEDs.</li>
   <li><b>Fora do escopo:</b> tamanhos 5×5 a 7×7 no hardware e alimentação por bateria.</li>
 </ul>
-<p>Para a demonstração existe ainda um <b>protótipo digital</b> no Tinkercad (seção 6), que roda o jogo inteiro só
-no Arduino, com as 20 grades 4×4 do dataset gravadas no firmware. Ele valida fiação, ordem dos LEDs e regras do
-cursor sem depender da integração Web Serial, que ainda não foi implementada.</p>
+<p>A especificação inicial previa um Arduino Nano e dois joysticks KY-023. A montagem usa um <b>Arduino Uno</b>
+(mesmo ATmega328P e mesmos pinos) e <b>quatro potenciômetros</b>, dois por controle, ligados nos mesmos pinos dos
+eixos dos joysticks. Para a demonstração existe ainda um <b>protótipo digital</b> no Tinkercad (seção 7), que roda
+o jogo inteiro só no Arduino, com as 20 grades 4×4 do dataset gravadas no firmware. Ele valida fiação, ordem dos
+LEDs e regras do cursor sem depender da ponte Web Serial.</p>
 
 <h2>Especificação do hardware</h2>
 <h3>Lista de componentes</h3>
 ${tabela(['Qtd.', 'Componente', 'Especificação', 'Função', 'No Tinkercad'], [
-    ['1', 'Arduino Nano', 'ATmega328P, 16 MHz, 32 KB flash, 2 KB SRAM, 5 V', 'periférico USB: lê controles, escreve LEDs', 'Arduino Uno R3 (mesmo chip e pinos)'],
+    ['1', 'Arduino Uno', 'ATmega328P, 16 MHz, 32 KB flash, 2 KB SRAM, 5 V; USB-serial CH340 no clone usado', 'periférico USB: lê controles, escreve LEDs', 'Arduino Uno R3'],
     ['40', 'LED WS2812B em plaquinha redonda ~10 mm', 'RGB, 5 V, 6 pontos de solda (+5V ×2, DIN, DO, GND ×2); 5 pacotes de 10', 'um LED por palito', '40 × NeoPixel'],
-    ['2', 'Joystick KY-023', 'dois potenciômetros (VRx, VRy), 5 V', 'mover o cursor: H horizontais, V verticais', '4 × Potenciômetro (um por eixo)'],
+    ['4', 'Potenciômetro', 'linear, 3 terminais, 5 V; dois por controle (eixos X e Y)', 'mover o cursor: H horizontais, V verticais', '4 × Potenciômetro'],
     ['3', 'Botão de fliperama 24 mm', 'normalmente aberto; verde, amarelo e azul', 'REMOVER, VOLTAR, SOLUÇÃO', '3 × Botão'],
     ['1', 'Resistor 330 Ω', '¼ W', 'protege a linha de dados dos LEDs', 'Resistor (330 Ω)'],
     ['1', 'Capacitor eletrolítico 1000 µF', '≥ 10 V, faixa do lado do GND', 'segura picos de corrente da grade', '— (pesa na simulação)'],
@@ -367,38 +372,41 @@ ${tabela(['Qtd.', 'Componente', 'Especificação', 'Função', 'No Tinkercad'], 
 
 <h3>Pinagem</h3>
 ${tabela(['Pino', 'Direção', 'Ligado a', 'Observação'], [
-    ['A0 / A1', 'entrada analógica', 'joystick H: VRx / VRy', 'centro calibrado ao ligar; zona morta ±200'],
-    ['A2 / A3', 'entrada analógica', 'joystick V: VRx / VRy', 'idem'],
+    ['A0 / A1', 'entrada analógica', 'controle H: potenciômetros X / Y', 'modo posição: faixas de coluna e linha, histerese 25'],
+    ['A2 / A3', 'entrada analógica', 'controle V: potenciômetros X / Y', 'idem'],
     ['D2', 'entrada', 'botão REMOVER (verde)', 'INPUT_PULLUP, outro terminal no GND; apertado = LOW'],
     ['D3', 'entrada', 'botão VOLTAR (amarelo)', 'INPUT_PULLUP'],
     ['D4', 'entrada', 'botão SOLUÇÃO (azul)', 'INPUT_PULLUP'],
     ['D6', 'saída', 'DIN do LED 0, via 330 Ω', 'dado WS2812B, 800 kHz'],
-    ['D0 / D1', 'serial', 'USB (Web Serial no tabuleiro final; Monitor Serial no Tinkercad)', '9600 baud'],
-    ['5V / GND', 'energia', 'joysticks; GND comum com a fonte dos LEDs', 'o 5V do Nano não alimenta LEDs'],
+    ['D0 / D1', 'serial', 'USB (Web Serial no tabuleiro final; Monitor Serial no Tinkercad)', '115200 baud no firmware periférico; 9600 no sketch do Tinkercad'],
+    ['D13', 'saída', 'LED “L” da placa', 'pisca a cada quadro de LEDs recebido do computador'],
+    ['5V / GND', 'energia', 'potenciômetros; GND comum com a fonte dos LEDs', 'o 5V do Uno não alimenta LEDs'],
   ], 'pinos usados no Arduino')}
-<p>O clique dos joysticks não é usado. Os botões dispensam resistor externo: com <code>INPUT_PULLUP</code> o pino
-fica em HIGH pelo resistor interno e o botão o leva ao GND.</p>
+<p>Cada potenciômetro tem as pontas no 5V e no GND e a perna do meio no pino analógico. Os botões dispensam
+resistor externo: com <code>INPUT_PULLUP</code> o pino fica em HIGH pelo resistor interno e o botão o leva ao
+GND.</p>
 
 <h3>Alimentação</h3>
 <ul>
-  <li>O Arduino é alimentado pelo USB do computador; o 5V dele alimenta só os joysticks.</li>
+  <li>O Arduino é alimentado pelo USB do computador; o 5V dele alimenta só os potenciômetros.</li>
   <li>Os LEDs têm fonte separada de 5 V e 2 a 3 A, com chave liga/desliga e capacitor de 1000 µF (10 V ou mais) na
   entrada, com a faixa do lado do GND.</li>
   <li><b>GND comum</b> entre a fonte e o Arduino é obrigatório. <b>Nunca</b> ligar o +5V da fonte no 5V do Arduino.</li>
-  <li>Tudo funciona a 5 V fixos; o brilho é limitado por software: <code>FastLED.setBrightness(80)</code> e
-  <code>setMaxPowerInVoltsAndMilliamps(5, 1500)</code>.</li>
+  <li>Tudo funciona a 5 V fixos; o brilho é limitado por software. O firmware usa a biblioteca
+  <code>Adafruit_NeoPixel</code> com <code>setBrightness(80)</code>, o mesmo brilho que a especificação previa com
+  FastLED. Com brilho 80 o pior caso já fica abaixo de 1 A, então o teto de corrente do FastLED
+  (<code>setMaxPowerInVoltsAndMilliamps</code>) não faz falta.</li>
 </ul>
 ${tabela(['Situação', 'Corrente estimada'], [
     ['máximo teórico (40 LEDs em branco pleno, 60 mA cada)', '2,4 A'],
-    ['todos em branco com brilho 80/255', '40 × ≈ 19 mA ≈ 0,75 A'],
+    ['todos em branco com brilho 80/255 (pior caso do firmware)', '40 × ≈ 19 mA ≈ 0,75 A'],
     ['tela de vitória (verde, brilho 80)', '40 × ≈ 6 mA ≈ 0,25 A'],
-    ['teto imposto pelo FastLED', '1,5 A'],
   ], 'consumo estimado (20 mA × valor/255 por canal)',
   'Na prática o consumo fica abaixo de 1 A; a fonte de 3 A deixa margem. A porta USB (500 mA) não deve alimentar a grade.')}
 
 <h2>Diagramas e esquemas</h2>
-${figura(svgBlocos(), 'diagrama de blocos do tabuleiro final. O computador roda o jogo e conversa com o Nano pela USB; o Nano lê joysticks e botões e escreve os LEDs pela linha D6. A grade tem fonte própria, com GND comum.')}
-${figura(svgEsquema(), 'esquema elétrico. Joysticks nas entradas analógicas, botões entre o pino e o GND (pull-up interno), linha de dados por 330 Ω até o LED 0 e capacitor de 1000 µF na entrada da fonte dos LEDs.')}
+${figura(svgBlocos(), 'diagrama de blocos do tabuleiro final. O computador roda o jogo e conversa com o Uno pela USB; o Uno lê potenciômetros e botões e escreve os LEDs pela linha D6. A grade tem fonte própria, com GND comum.')}
+${figura(svgEsquema(), 'esquema elétrico. Potenciômetros nas entradas analógicas, botões entre o pino e o GND (pull-up interno), linha de dados por 330 Ω até o LED 0 e capacitor de 1000 µF na entrada da fonte dos LEDs.')}
 
 <h3>Mapa de palitos e LEDs</h3>
 <p>Não existe endereço gravado nos WS2812B: o “endereço” é a posição na corrente (LED 0 a 39). Os dados vão em
@@ -410,8 +418,9 @@ identificados como no jogo (<code>h:linha:coluna</code> e <code>v:linha:coluna</
 ${figura(svgMapaLeds(), 'índice de cada LED na corrente (número branco) e identificador do palito (cinza), idêntico ao de <code>src/core/geometry.js</code>. A linha tracejada é o caminho dos dados, do LED 0 ao LED 39.')}
 
 <h3>Cursor</h3>
-<p>Só um cursor fica ativo por vez. O joystick H move entre palitos horizontais e o V entre verticais; mexer no
-joystick da outra orientação troca o cursor para o removível mais próximo dela. Regras:</p>
+<p>Só um cursor fica ativo por vez. O controle H move entre palitos horizontais e o V entre verticais; mexer no
+controle da outra orientação troca o cursor para o removível mais próximo dela. No tabuleiro final as regras
+ficam em <code>src/core/cursor.js</code>, o mesmo código que o teclado usa no navegador. Regras:</p>
 <ul>
   <li>O cursor só para em palito <b>removível</b>; pula bloqueados, quebrados e removidos.</li>
   <li><b>Ao longo da linha</b> (esquerda/direita): vai para o próximo removível; se não houver, fica parado.</li>
@@ -419,7 +428,13 @@ joystick da outra orientação troca o cursor para o removível mais próximo de
   próximo da coluna atual.</li>
   <li><b>Depois de remover</b>, vai para o removível mais próximo; <b>ao desfazer</b>, volta para o palito
   restaurado.</li>
-  <li>Segurar o joystick repete o movimento: primeiro após 500 ms, depois a cada 250 ms.</li>
+  <li><b>Nova partida:</b> começa no primeiro removível da corrente. Empates de distância ficam com o LED de menor
+  índice.</li>
+  <li><b>Modo posição</b> (potenciômetros, padrão do firmware periférico): cada controle aponta para uma linha e
+  uma coluna; o cursor vai para esse palito se ele for removível, senão para o removível mais próximo da mesma
+  orientação.</li>
+  <li><b>Modo joystick</b> (sketch do Tinkercad, ou <code>MODO_POSICAO = false</code>): girar para um lado anda um
+  palito; segurar repete o movimento, primeiro após 500 ms, depois a cada 250 ms.</li>
 </ul>
 ${figura(svgNavegacao(quebrados, bloqueados), 'percurso de exemplo na grade g4-001, a partir do início da partida.')}
 
@@ -435,6 +450,54 @@ ${tabela(['Elemento', 'Placa real', 'Simulador (Tinkercad)'], [
   ], 'linguagem visual do tabuleiro',
   'No Tinkercad um NeoPixel branco aceso quase não se distingue de um apagado; por isso o sketch tem a chave <code>CORES_DO_SIMULADOR</code> (true no Tinkercad, false na placa real).')}
 ${figura(`<div class="telas">${telaJogo}${telaSolucao}${telaVitoria}</div>`, 'a grade g4-001 nos três modos, com as cores da placa real: em jogo (dois palitos removidos; o contorno marca o cursor piscando), modo solução (os 6 palitos da solução mínima em ciano) e vitória.')}
+
+<h2>Firmware do tabuleiro final</h2>
+<p>O firmware está em <code>hardware/broken_grid_periferico/broken_grid_periferico.ino</code>. O Uno não conhece
+as regras do jogo: ele só lê os potenciômetros e os botões, avisa o computador e acende os LEDs na cor que o
+computador mandar. O pisca do cursor é feito no próprio Uno, para não depender da USB. Antes do primeiro quadro, o
+tabuleiro fica apagado.</p>
+<h3>Protocolo serial</h3>
+<p>Texto a <b>115200 baud</b>, uma mensagem por linha. Ao abrir a porta o Uno reinicia e anuncia que está pronto;
+se o anúncio não chegar em 2,5 s, o computador pergunta <code>?</code> até três vezes antes de desistir.</p>
+${tabela(['Mensagem (Uno → computador)', 'Quando'], [
+    ['<code>PRONTO broken-grid-periferico v1 n=4 modo=posicao</code>', 'ao ligar e em resposta a <code>?</code>'],
+    ['<code>POS H &lt;linha&gt; &lt;coluna&gt;</code> · <code>POS V …</code>', 'modo posição: um controle passou para outra faixa'],
+    ['<code>MOVER H D|E|C|B</code> · <code>MOVER V …</code>', 'modo joystick: direita, esquerda, cima, baixo'],
+    ['<code>BOTAO REMOVER</code> · <code>BOTAO VOLTAR</code> · <code>BOTAO SOLUCAO</code>', 'botão apertado (debounce de 25 ms)'],
+    ['<code>OK</code>', 'quadro de LEDs recebido e aplicado'],
+    ['<code>ERRO quadro_invalido</code> · <code>ERRO comando_desconhecido</code> · <code>ERRO linha_longa</code>', 'linha recebida fora do protocolo'],
+  ], 'mensagens enviadas pelo firmware')}
+${tabela(['Código no quadro', 'LED'], [
+    ['<code>.</code>', 'apagado (quebrado ou removido)'],
+    ['<code>w</code>', 'branco (removível)'],
+    ['<code>r</code>', 'vermelho (bloqueado)'],
+    ['<code>c</code>', 'ciano (solução)'],
+    ['<code>g</code>', 'verde (vitória)'],
+    ['<code>*</code>', 'cursor, branco piscando a cada 300 ms'],
+  ], 'quadro de LEDs: o computador envia <code>L</code> seguido de 40 códigos, um por LED, na ordem da corrente')}
+<p><b>Controle de fluxo.</b> <code>leds.show()</code> desliga as interrupções do ATmega328P por cerca de 1,2 ms, e
+bytes que chegam pela serial nesse intervalo se perdem. Por isso o computador só manda um quadro por vez: o
+próximo sai depois do <code>OK</code>, e um <code>ERRO</code> ou 400 ms de silêncio fazem reenviar. Quadros pedidos
+enquanto um está em trânsito não formam fila; vale só o mais recente.</p>
+<h3>Configuração</h3>
+${tabela(['Constante', 'Padrão', 'Para que serve'], [
+    ['<code>POTENCIOMETROS_LIGADOS</code>', 'false', 'com A0–A3 soltos a leitura é ruído; mudar para true depois de ligar os potenciômetros'],
+    ['<code>MODO_POSICAO</code>', 'true', 'true: a posição de cada potenciômetro escolhe o palito; false: imita um joystick'],
+    ['<code>INVERTER[4]</code>', 'todos false', 'inverte o sentido de um eixo, na ordem H-X, H-Y, V-X, V-Y'],
+    ['<code>HISTERESE</code>', '25', 'margem para trocar de faixa, evita o cursor tremer na divisa'],
+    ['<code>DEBOUNCE_MS</code>', '25', 'tempo que o botão precisa ficar estável para contar'],
+    ['<code>BRILHO</code>', '80', 'brilho dos LEDs, de 0 a 255'],
+  ], 'constantes ajustáveis no início do firmware')}
+<h3>Validação com o Uno real</h3>
+${tabela(['Verificação', 'Resultado'], [
+    ['<code>node tools/verificar-tabuleiro.mjs</code>: cursor, protocolo e conexão contra um Uno simulado que perde bytes', '63 de 63'],
+    ['firmware pela serial (sem navegador): anúncio, comandos válidos e inválidos', '<code>PRONTO</code> em 1,6 s; cada erro com o motivo certo'],
+    ['300 quadros seguidos, esperando o <code>OK</code>', '300 de 300 confirmados, ≈ 9,5 ms por quadro'],
+    ['30 quadros seguidos <b>sem</b> esperar o <code>OK</code>', '15 OK e 15 ERRO: confirma a necessidade do controle de fluxo'],
+    ['3 s com controles soltos e cursor piscando', 'nenhum evento falso'],
+    ['jogo no Chrome conectado: teclado, solução, vitória, troca de tamanho', '21 quadros confirmados, nenhum reenvio'],
+    ['botões simulados com jumper entre D2/D3/D4 e GND', 'REMOVER, VOLTAR e SOLUÇÃO chegaram ao jogo com o efeito certo'],
+  ], 'testes da ponte com o Arduino Uno (sem LEDs e sem potenciômetros ligados)')}
 
 <h2>Firmware de teste (Tinkercad)</h2>
 <p>O sketch está em <code>hardware/broken_grid/broken_grid.ino</code>, num único arquivo porque o editor do
@@ -466,9 +529,14 @@ ${tabela(['Verificação', 'Resultado'], [
 palito</b> (<code>h:l:c</code> / <code>v:l:c</code>), o <b>dataset</b> (as mesmas 20 grades 4×4, geradas do
 mesmo JSON) e a <b>formulação do solver</b>.</p>
 <ol>
-  <li><b>Tabuleiro final (planejado).</b> O jogo no Chrome/Edge abre a porta do Nano pela <b>Web Serial API</b>.
-  O Nano envia os eventos dos controles (joystick, REMOVER, VOLTAR, SOLUÇÃO) e recebe a cor de cada um dos 40
-  LEDs; regras, cursor, cronômetro e estatísticas ficam no computador. Essa ponte ainda não foi implementada.</li>
+  <li><b>Tabuleiro final (pronto).</b> O jogo no Chrome/Edge abre a porta do Uno pela <b>Web Serial API</b>,
+  pelo cartão “Tabuleiro físico” da página. O Uno envia os eventos dos controles e recebe a cor de cada um dos 40
+  LEDs (seção 4); regras, cursor, cronômetro e estatísticas ficam no computador. No jogo, a ponte se divide em
+  <code>src/tabuleiro/protocolo.js</code> (monta o quadro e interpreta as mensagens),
+  <code>src/tabuleiro/serial.js</code> (conexão e controle de fluxo) e <code>src/core/cursor.js</code> (regras
+  do cursor), todos sem DOM. Mouse, teclado e tabuleiro passam pelas mesmas ações do jogo; sem os controles, o
+  teclado faz o papel deles (setas = H, W A S D = V, Enter = REMOVER, Backspace = VOLTAR, X = SOLUÇÃO). O tabuleiro
+  só mostra grades 4×4: ao conectar o jogo muda para 4×4 e, em outros tamanhos, os LEDs ficam apagados.</li>
   <li><b>Protótipo do Tinkercad (pronto).</b> O sketch de teste joga sozinho e fala um protocolo de texto pela
   serial (9600 baud, um comando por linha), que permite jogar e acompanhar a partida pelo Monitor Serial.</li>
 </ol>
@@ -482,7 +550,7 @@ ${tabela(['Comando (computador → placa)', 'Efeito'], [
     ['<code>NOVA</code>', 'carrega a próxima grade do dataset'],
     ['<code>GRADE 7</code>', 'carrega a grade g4-007 (reproduz uma partida específica, RNF05)'],
     ['<code>ESTADO</code>', 'pede uma fotografia completa da partida'],
-  ], 'comandos aceitos pelo sketch de teste',
+  ], 'comandos aceitos pelo sketch de teste do Tinkercad',
   'O Monitor Serial do Tinkercad envia o texto sem quebra de linha; o sketch considera o comando encerrado após 400 ms sem novos caracteres (com a aba em segundo plano, o Tinkercad entrega os caracteres espaçados).')}
 ${tabela(['Evento (placa → computador)', 'Exemplo'], [
     ['início', '<code>BROKEN_GRID tinkercad v2 n=4</code>'],
@@ -495,15 +563,15 @@ ${tabela(['Evento (placa → computador)', 'Exemplo'], [
     ['vitória', '<code>VITORIA tempo_ms=… removidos=6 minimo=6 excedentes=0 eficiencia=100.00 percurso=…</code>'],
     ['fotografia', '<code>ESTADO removidos=0 vivos=14 vitoria=0 palitos=rrrr… cursor=h:0:0</code>'],
     ['erro', '<code>ERRO id_invalido</code> · <code>ERRO grade_invalida</code> · <code>ERRO direcao_invalida</code> · <code>ERRO comando_desconhecido</code>'],
-  ], 'eventos emitidos pelo sketch de teste',
+  ], 'eventos emitidos pelo sketch de teste do Tinkercad',
   'Em <code>ESTADO</code>, cada caractere de <code>palitos</code> é um LED na ordem da corrente: r removível, b bloqueado, q quebrado, x removido. O evento VITORIA traz o resumo de fim de partida da especificação: tempo, removidos, mínimo, excedentes, eficiência e percurso.')}
 ${tabela(['Requisito', 'Como o hardware atende'], [
     ['RF02 / RF11 / RNF05', 'grades pré-validadas do dataset, com id; <code>GRADE n</code> reproduz uma partida'],
-    ['RF03 / RF05', 'joysticks + REMOVER; o cursor nem para em bloqueados e quebrados'],
+    ['RF03 / RF05', 'controles H/V + REMOVER; o cursor nem para em bloqueados e quebrados'],
     ['RF04 / RF06', 'quadrados vivos recalculados a cada jogada; vitória quando não resta nenhum'],
     ['RF07', 'contador de removidos em cada evento REMOVIDO / DESFEITO'],
     ['RF08 / RF12', 'botão SOLUÇÃO mostra a solução mínima em ciano sobre a grade inicial'],
-    ['RF09', 'nova partida pelo computador (no protótipo: <code>NOVA</code> ou <code>GRADE n</code>)'],
+    ['RF09', 'nova partida pelo computador (botão “Novo Grid”; no Tinkercad: <code>NOVA</code> ou <code>GRADE n</code>)'],
     ['RF13', 'VOLTAR desfaz só a última remoção; o cursor volta ao palito restaurado'],
   ], 'rastreabilidade com os requisitos do jogo')}
 
@@ -514,18 +582,16 @@ ${tabela(['Requisito', 'Como o hardware atende'], [
 <ul>
   <li><b>LEDs:</b> 40 NeoPixels, um no meio de cada palito, ligados em zigue-zague exatamente como serão soldados
   (Figura 3), com três fios entre cada LED. As fileiras de 4 LEDs são palitos horizontais; as de 5, verticais.</li>
-  <li><b>Arduino Uno R3</b> no lugar do Nano (mesmo ATmega328P e mesmos pinos): D6 → 330 Ω → LED 0.</li>
-  <li><b>Joysticks:</b> 4 potenciômetros, da esquerda para a direita: H-X (A0), H-Y (A1), V-X (A2), V-Y (A3).</li>
+  <li><b>Arduino Uno R3</b>, a mesma placa da montagem: D6 → 330 Ω → LED 0.</li>
+  <li><b>Controles:</b> 4 potenciômetros, da esquerda para a direita: H-X (A0), H-Y (A1), V-X (A2), V-Y (A3).</li>
   <li><b>Botões:</b> 3, entre o pino e o GND: REMOVER (D2), VOLTAR (D3), SOLUÇÃO (D4).</li>
 </ul>
 ${tabela(['Diferença', 'No Tinkercad', 'Na montagem real', 'Motivo'], [
     ['alimentação dos LEDs', '5V do Arduino', 'fonte 5 V / 3 A, capacitor 1000 µF, GND comum', 'a “Fonte de energia” deixa a simulação ~30× mais lenta (1,5 % contra 50 % do tempo real); o capacitor também pesa'],
-    ['biblioteca', 'Adafruit_NeoPixel, brilho 80', 'FastLED, brilho 80 e teto de 1,5 A', 'o Tinkercad não tem FastLED; com brilho 255 os 40 LEDs sobrecarregam o 5V simulado e as cores saem erradas'],
-    ['joysticks', '2 potenciômetros por joystick', 'KY-023', 'o Tinkercad não tem KY-023'],
+    ['onde roda o jogo', 'no próprio Arduino', 'no computador; o Uno é só periférico', 'o Tinkercad não tem Web Serial com o navegador'],
+    ['controles', 'potenciômetros lidos como joystick (centro calibrado, zona morta ±200)', 'potenciômetros em modo posição (faixas)', 'o sketch segue a especificação original, com KY-023'],
     ['cores', 'cursor amarelo, removido azul', 'cursor branco, removido apagado', 'branco aceso ≈ apagado na tela do simulador (<code>CORES_DO_SIMULADOR</code>)'],
-    ['calibração', 'centro medido no <code>setup</code>', 'idem', 'girar um potenciômetro durante a simulação grava a posição no projeto'],
-    ['placa', 'Arduino Uno R3', 'Arduino Nano', 'mesmo microcontrolador e pinos'],
-  ], 'o que o simulador obrigou a fazer diferente',
+    ['calibração', 'centro medido no <code>setup</code>', 'não precisa no modo posição', 'girar um potenciômetro durante a simulação grava a posição no projeto'],  ], 'o que o simulador obrigou a fazer diferente',
   'Também por causa do Tinkercad, as assinaturas de função do sketch usam só tipos nativos: o editor insere os protótipos na linha 1, antes de qualquer typedef, enum ou struct.')}
 
 <h3>Como simular</h3>
@@ -568,25 +634,37 @@ ${tabela(['Diferença', 'No Tinkercad', 'Na montagem real', 'Motivo'], [
   de profundidade para o LED; 4 furos M3 com rebaixo nos cantos.</li>
   <li>Centros dos palitos (origem no canto da placa): horizontais em X 33/71/109/147 e Y 166/128/90/52/14;
   verticais em X 14/52/90/128/166 e Y 147/109/71/33.</li>
-  <li>Base/caixa com o Arduino e a fiação, tampa inferior parafusada e painel frontal com joysticks e botões.</li>
+  <li>Base/caixa com o Arduino e a fiação, tampa inferior parafusada e painel frontal com os controles e os
+  botões.</li>
 </ul>
 <h3>Fiação e testes</h3>
 <ul>
   <li>Entre os LEDs: silicone 26 AWG em três cores — vermelho = 5V, preto = GND, terceira cor = dados. Os dois +5V
   de cada plaquinha são ligados entre si, assim como os dois GND.</li>
-  <li>Da fonte até o primeiro LED: 22 AWG vermelho e preto. Joysticks e botões até o Arduino: jumpers Dupont
+  <li>Da fonte até o primeiro LED: 22 AWG vermelho e preto. Potenciômetros e botões até o Arduino: jumpers Dupont
   fêmea-fêmea; botões com faston 4,8 mm ou solda.</li>
-  <li>Testar a cada 10 LEDs soldados com um sketch que acende um LED de cada vez, conferindo a ordem da Figura 3.</li>
+  <li><b>LEDs:</b> a cada 10 LEDs soldados, gravar <code>hardware/teste_leds/teste_leds.ino</code>. Ele acende um
+  LED de cada vez na ordem da corrente (horizontais em branco, verticais em azul) e imprime no Monitor Serial, a
+  9600 baud, qual palito deveria acender, para conferir a ordem da Figura 3. Comandos: <code>N 10</code> (quantos
+  LEDs já estão soldados), <code>P</code> (pausa), <code>T</code> (todos acesos, teste de alimentação) e um número
+  (acende só aquele LED).</li>
+  <li><b>Controles:</b> antes de fechar a caixa, gravar <code>hardware/teste_controles/teste_controles.ino</code>.
+  Ele mostra a leitura de cada potenciômetro, a faixa e o palito para onde cada controle aponta, além dos botões
+  apertados. Se um eixo andar ao contrário, marcar a posição dele em <code>INVERTER</code> no firmware.</li>
 </ul>
 <h3 id="prototipo">Renderização conceitual</h3>
 <p>A renderização abaixo é o protótipo conceitual da carcaça em camadas, desenhado em 7×7. Para o 4×4 a mesma ideia
 encolhe para 40 palitos; em 7×7 seriam 112 LEDs e 140 quadrados, que continuam viáveis porque o solver roda no
-computador e o Nano só repassa cores e eventos.</p>
+computador e o Arduino só repassa cores e eventos. O quadro de LEDs, porém, cresceria para 112 códigos e não cabe
+no buffer de linha de 64 bytes do firmware atual.</p>
 ${figura(`<img src="${foto}" alt="Protótipo físico em vista explodida" class="foto">`, 'protótipo conceitual da carcaça em vista explodida (renderização da equipe, versão 7×7).')}
 
 <h2>Pendências</h2>
 <ul>
-  <li>Implementar a ponte Web Serial entre o jogo do navegador e o Nano.</li>
+  <li>Ligar os potenciômetros, mudar <code>POTENCIOMETROS_LIGADOS</code> para true e conferir o sentido de cada
+  eixo (<code>INVERTER</code>) e a <code>HISTERESE</code> com os controles montados.</li>
+  <li>Conferir o <code>DEBOUNCE_MS</code> com os botões de fliperama: cada aperto deve gerar um único evento.</li>
+  <li>Validar a ordem e as cores da corrente de LEDs na grade soldada.</li>
   <li>Decidir se o cronômetro pausa no modo solução.</li>
   <li>Decidir se ver a solução marca a partida como “com ajuda”.</li>
   <li>Decidir o que o tabuleiro mostra antes de começar uma partida.</li>
