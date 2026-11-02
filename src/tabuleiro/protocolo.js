@@ -53,7 +53,7 @@ export function montarQuadro({ estado, estadoOriginal = null, vista = 'jogo', so
 }
 
 const DIRECOES = { D: [1, 0], E: [-1, 0], C: [0, -1], B: [0, 1] };
-const BOTOES = { REMOVER: 'remover', VOLTAR: 'voltar', SOLUCAO: 'solucao' };
+const BOTOES = { REMOVER: 'remover', VOLTAR: 'voltar', SOLUCAO: 'solucao', NOVO: 'novo' };
 
 // Converte uma linha recebida do Uno num evento. Linhas que não seguem o protocolo viram
 // { tipo: 'desconhecido' } e são ignoradas pelo jogo (nunca lançam).

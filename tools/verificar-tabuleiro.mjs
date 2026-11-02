@@ -153,6 +153,7 @@ function verificarProtocolo() {
   const ps = interpretarLinha('POS H 4 2\r');
   checar('POS H 4 2 (com \\r)', ps.tipo === 'pos' && ps.controle === 'h' && ps.linha === 4 && ps.coluna === 2);
   checar('BOTAO SOLUCAO', interpretarLinha('BOTAO SOLUCAO').botao === 'solucao');
+  checar('BOTAO NOVO', interpretarLinha('BOTAO NOVO').botao === 'novo');
   checar('lixo vira desconhecido', ['', 'MOVER X D', 'POS H a b', 'BOTAO PULAR', '\u0000OK'].every((l) => interpretarLinha(l).tipo === 'desconhecido'));
 }
 

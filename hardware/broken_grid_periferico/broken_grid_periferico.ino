@@ -1,7 +1,7 @@
 // Broken Grid — firmware do tabuleiro final (Arduino Uno como periférico do PC)
 //
 // O jogo roda no navegador (Chrome/Edge). Este firmware só:
-//   1. lê os 4 potenciômetros e os 3 botões e avisa o PC pela USB;
+//   1. lê os 4 potenciômetros e os 4 botões e avisa o PC pela USB;
 //   2. recebe do PC o estado de cada um dos 40 LEDs e acende a corrente WS2812B.
 // Regras, solver, cursor, cronômetro e estatísticas ficam todos no JavaScript
 // (src/tabuleiro/ e src/core/cursor.js).
@@ -15,7 +15,7 @@
 //   POS V <linha> <coluna>     idem, controle V (v:l:c)
 //   MOVER H D|E|C|B            modo joystick: direita, esquerda, cima, baixo
 //   MOVER V D|E|C|B
-//   BOTAO REMOVER | BOTAO VOLTAR | BOTAO SOLUCAO
+//   BOTAO REMOVER | BOTAO VOLTAR | BOTAO SOLUCAO | BOTAO NOVO
 //   OK                         quadro de LEDs recebido e aplicado
 //   ERRO <motivo>              quadro_invalido | comando_desconhecido | linha_longa
 //
@@ -38,7 +38,7 @@
 //   A0 / A1 = potenciômetros do controle H (eixo X / eixo Y)
 //   A2 / A3 = potenciômetros do controle V (eixo X / eixo Y)
 //     cada potenciômetro: pontas no 5V e no GND, perna do meio no pino analógico
-//   D2 = REMOVER, D3 = VOLTAR, D4 = SOLUÇÃO (outro terminal no GND; INPUT_PULLUP)
+//   D2 = REMOVER, D3 = VOLTAR, D4 = SOLUÇÃO, D5 = NOVO GRID (outro terminal no GND; INPUT_PULLUP)
 //   LEDs na fonte separada de 5 V, com GND comum. Nunca ligar a fonte no 5V do Uno.
 //
 // Corrente de LEDs em zigue-zague:  h:r:c -> r*9 + c      v:r:c -> r*9 + 4 + (4 - c)
@@ -49,7 +49,7 @@
 
 // >>> MUDE PARA true QUANDO OS POTENCIÔMETROS ESTIVEREM LIGADOS.
 // Com os pinos A0..A3 soltos a leitura é ruído e o cursor andaria sozinho.
-const bool POTENCIOMETROS_LIGADOS = false;
+const bool POTENCIOMETROS_LIGADOS = true;
 
 // true:  a posição do potenciômetro escolhe o palito (recomendado para potenciômetro,
 //        que não volta sozinho para o meio)
@@ -58,14 +58,15 @@ const bool MODO_POSICAO = true;
 
 // inverte o sentido de cada eixo, na ordem H-X, H-Y, V-X, V-Y
 // (sem inversão: valor alto no X = direita, valor alto no Y = para baixo)
-const bool INVERTER[4] = {false, false, false, false};
+const bool INVERTER[4] = {true, false, true, false};
 
 const uint8_t N = 4;
 const uint8_t NUM_LEDS = 2 * N * (N + 1);  // 40
 
 const uint8_t PINO_LEDS = 6;
 const uint8_t PINOS_EIXO[4] = {A0, A1, A2, A3};
-const uint8_t PINOS_BOTAO[3] = {2, 3, 4};
+const uint8_t NUM_BOTOES = 4;
+const uint8_t PINOS_BOTAO[NUM_BOTOES] = {2, 3, 4, 5};
 
 const long BAUD = 115200;
 const uint8_t BRILHO = 80;           // mesmo brilho da especificação
@@ -183,13 +184,13 @@ void lerSerial() {
 // ------------------------------------------------------------------ botões
 // INPUT_PULLUP: solto = HIGH, apertado = LOW (o botão liga o pino ao GND).
 
-const char *const NOMES_BOTAO[3] = {"REMOVER", "VOLTAR", "SOLUCAO"};
-bool botaoApertado[3] = {false, false, false};
-bool botaoLeitura[3] = {false, false, false};
-uint32_t botaoMudouEm[3] = {0, 0, 0};
+const char *const NOMES_BOTAO[NUM_BOTOES] = {"REMOVER", "VOLTAR", "SOLUCAO", "NOVO"};
+bool botaoApertado[NUM_BOTOES] = {false, false, false, false};
+bool botaoLeitura[NUM_BOTOES] = {false, false, false, false};
+uint32_t botaoMudouEm[NUM_BOTOES] = {0, 0, 0, 0};
 
 void lerBotoes(uint32_t agora) {
-  for (uint8_t i = 0; i < 3; i++) {
+  for (uint8_t i = 0; i < NUM_BOTOES; i++) {
     bool leitura = digitalRead(PINOS_BOTAO[i]) == LOW;
     if (leitura != botaoLeitura[i]) { botaoLeitura[i] = leitura; botaoMudouEm[i] = agora; }
     if (agora - botaoMudouEm[i] >= DEBOUNCE_MS && leitura != botaoApertado[i]) {
@@ -284,7 +285,7 @@ void lerModoJoystick(uint32_t agora) {
 void setup() {
   Serial.begin(BAUD);
   pinMode(LED_BUILTIN, OUTPUT);
-  for (uint8_t i = 0; i < 3; i++) pinMode(PINOS_BOTAO[i], INPUT_PULLUP);
+  for (uint8_t i = 0; i < NUM_BOTOES; i++) pinMode(PINOS_BOTAO[i], INPUT_PULLUP);
   if (POTENCIOMETROS_LIGADOS && !MODO_POSICAO) calibrar();
   leds.begin();
   leds.setBrightness(BRILHO);

@@ -90,6 +90,7 @@ export async function iniciarAplicacao(documento) {
         if (evento.botao === 'remover') remover();
         else if (evento.botao === 'voltar') voltar();
         else if (evento.botao === 'solucao') alternarSolucao();
+        else if (evento.botao === 'novo') reiniciarGradeAtual();
       }
     },
     aoMudar: (info) => {
@@ -182,6 +183,9 @@ export async function iniciarAplicacao(documento) {
     } else if (tecla === 'x') {
       evento.preventDefault();
       alternarSolucao();
+    } else if (tecla === 'n') {
+      evento.preventDefault();
+      reiniciarGradeAtual();
     }
   });
 

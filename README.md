@@ -301,8 +301,8 @@ O que o simulador obrigou a fazer diferente da montagem real:
 ### Ponte com o tabuleiro (tabuleiro final)
 
 No tabuleiro final o jogo do navegador é o cérebro e o **Arduino Uno** é só periférico:
-`hardware/broken_grid_periferico/broken_grid_periferico.ino` lê os 4 potenciômetros e os 3
-botões e acende os LEDs que o PC mandar. O protocolo completo está no cabeçalho do `.ino`.
+`hardware/broken_grid_periferico/broken_grid_periferico.ino` lê os 4 potenciômetros e os 4
+botões (REMOVER D2, VOLTAR D3, SOLUÇÃO D4 e NOVO GRID D5) e acende os LEDs que o PC mandar. O protocolo completo está no cabeçalho do `.ino`.
 
 1. Na Arduino IDE, instale a biblioteca **Adafruit NeoPixel**, escolha a placa **Arduino Uno**,
    abra o `.ino` e clique em **Upload**.
@@ -313,7 +313,7 @@ botões e acende os LEDs que o PC mandar. O protocolo completo está no cabeçal
    uma grade 4×4. A cada quadro recebido o LED **L** da placa pisca.
 
 Sem os controles, o teclado faz o papel deles: setas = controle H, W A S D = controle V,
-Enter = REMOVER, Backspace = VOLTAR, X = SOLUÇÃO. Com os potenciômetros ligados, mude
+Enter = REMOVER, Backspace = VOLTAR, X = SOLUÇÃO, N = NOVO GRID. Com os potenciômetros ligados, mude
 `POTENCIOMETROS_LIGADOS` para `true` no firmware (com os pinos soltos a leitura é ruído).
 `MODO_POSICAO = true` faz a posição de cada potenciômetro escolher a linha e a coluna do
 cursor; `false` imita um joystick.
