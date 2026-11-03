@@ -1,22 +1,22 @@
-// Broken Grid — teste da corrente de LEDs (usar durante a soldagem, a cada 10 LEDs)
+// Broken Grid - teste da fita de LEDs (rodar durante a soldagem, a cada 10 LEDs)
 //
-// Acende UM LED de cada vez, na ordem da corrente (0, 1, 2, ...), e imprime no Monitor
-// Serial (9600 baud) qual palito ele deveria ser. Confira no tabuleiro se o LED aceso
-// está mesmo no palito impresso. Horizontais acendem em BRANCO, verticais em AZUL.
+// Acende um LED por vez, na ordem da fita (0, 1, 2...), e escreve no Monitor Serial
+// (9600 baud) qual palito ele deveria ser. É só conferir se o LED aceso está no palito
+// certo. Horizontais acendem em branco, verticais em azul.
 //
-// Comandos no Monitor Serial (uma linha, Enter):
+// Comandos no Monitor Serial (digita e dá Enter):
 //   N <qtd>   quantos LEDs já estão soldados (padrão 40). Ex.: N 10
-//   P         pausa / continua a varredura
-//   T         acende todos os soldados de uma vez em branco fraco (teste de alimentação)
+//   P         pausa / continua
+//   T         acende todos os soldados em branco fraco (testa a alimentação)
 //   <número>  acende só esse LED e pausa. Ex.: 17
 //
-// Ligação: D6 -> resistor 330 ohm -> DIN do LED 0. LEDs na fonte 5 V separada, GND comum.
+// Ligação: D6 -> resistor 330 ohm -> DIN do LED 0. LEDs na fonte de 5 V separada, GND comum.
 
 #include <Adafruit_NeoPixel.h>
 
 const uint8_t PINO_LEDS = 6;
 const uint8_t TOTAL = 40;
-const uint8_t BRILHO = 40;          // baixo de propósito: é só para ver a posição
+const uint8_t BRILHO = 40;          // baixo, só precisa ver qual acendeu
 const uint16_t PASSO_MS = 700;
 
 Adafruit_NeoPixel leds(TOTAL, PINO_LEDS, NEO_GRB + NEO_KHZ800);
