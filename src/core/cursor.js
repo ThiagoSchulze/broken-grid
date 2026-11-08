@@ -1,13 +1,16 @@
 // Regras do cursor do tabuleiro físico (e do teclado no navegador). Livre de DOM.
-// Mesmo comportamento de hardware/broken_grid/broken_grid.ino, generalizado para n x n:
+// Mesmo comportamento de hardware/broken_grid/broken_grid.ino, generalizado para n x n.
+// O tabuleiro tem só dois botões de movimento, DIREITA e BAIXO:
 //   - o cursor só para em palito removível;
-//   - ao longo da linha vai para o próximo removível; se não houver, fica parado;
-//   - para outra linha escolhe a próxima linha com algum removível, no palito mais próximo
-//     da coluna atual (empate: menor coluna);
-//   - mexer no controle da outra orientação troca para o removível mais próximo dela;
+//   - DIREITA vai para o próximo removível da mesma fileira; no fim, volta ao primeiro
+//     removível da fileira (dá a volta). Se não houver outro, fica parado;
+//   - BAIXO desce para a próxima fileira que tenha algum removível. As fileiras se alternam
+//     entre horizontais e verticais (h0, v0, h1, v1, ..., hn) e, depois da última, volta à
+//     primeira. Na fileira nova escolhe o palito mais perto na horizontal; no empate fica o
+//     de mesmo número de coluna (assim descer várias vezes não vai escorregando para um lado);
 //   - empates de distância ficam com o menor índice da corrente de LEDs.
-// "Linha" é uma fileira de palitos da mesma orientação: n+1 linhas de n horizontais e
-// n linhas de n+1 verticais.
+// "Fileira" é uma linha de palitos da mesma orientação: n+1 fileiras de n horizontais e
+// n fileiras de n+1 verticais, intercaladas, na mesma ordem da corrente de LEDs.
 
 import { analisarId, idPalito, HORIZONTAL, VERTICAL } from './geometry.js';
 import { ESTADOS } from './rules.js';
@@ -80,54 +83,64 @@ function dimensoes(n, orientacao) {
     : { linhas: n, largura: n + 1 };
 }
 
-export function moverAoLongo(estado, cursor, passo) {
+// fileira na ordem da corrente: h:r -> 2r, v:r -> 2r + 1 (total 2n + 1)
+function fileiraDe(p) {
+  return p.orientacao === HORIZONTAL ? 2 * p.linha : 2 * p.linha + 1;
+}
+
+function palitosDaFileira(n, fileira) {
+  const orientacao = fileira % 2 === 0 ? HORIZONTAL : VERTICAL;
+  const linha = fileira >> 1;
+  const { largura } = dimensoes(n, orientacao);
+  const ids = [];
+  for (let coluna = 0; coluna < largura; coluna += 1) ids.push(idPalito(orientacao, linha, coluna));
+  return ids;
+}
+
+// DIREITA (passo 1) ou ESQUERDA (passo -1): próximo removível da mesma fileira, dando a volta
+export function moverNaFileira(estado, cursor, passo = 1) {
   const p = analisarId(cursor);
   if (!p) return cursor;
   const { largura } = dimensoes(estado.n, p.orientacao);
-  for (let c = p.coluna + passo; c >= 0 && c < largura; c += passo) {
+  for (let k = 1; k < largura; k += 1) {
+    const c = (((p.coluna + passo * k) % largura) + largura) % largura;
     const id = idPalito(p.orientacao, p.linha, c);
     if (removivel(estado, id)) return id;
   }
   return cursor;
 }
 
-export function moverEntreLinhas(estado, cursor, passo) {
+// BAIXO (passo 1) ou CIMA (passo -1): próxima fileira com algum removível, dando a volta;
+// na fileira nova, o palito mais perto na horizontal (empate: mesmo número de coluna)
+export function moverDeFileira(estado, cursor, passo = 1) {
   const p = analisarId(cursor);
   if (!p) return cursor;
-  const { linhas, largura } = dimensoes(estado.n, p.orientacao);
-  for (let r = p.linha + passo; r >= 0 && r < linhas; r += passo) {
+  const total = 2 * estado.n + 1;
+  const f0 = fileiraDe(p);
+  const x0 = centro(p).x;
+  for (let k = 1; k <= total; k += 1) {
+    const f = (((f0 + passo * k) % total) + total) % total;
     let melhor = null;
     let melhorDist = Infinity;
-    for (let c = 0; c < largura; c += 1) {
-      const id = idPalito(p.orientacao, r, c);
-      const d = Math.abs(c - p.coluna);
-      if (removivel(estado, id) && d < melhorDist) { melhorDist = d; melhor = id; }
+    for (const id of palitosDaFileira(estado.n, f)) {
+      if (!removivel(estado, id)) continue;
+      const q = analisarId(id);
+      const d = Math.abs(centro(q).x - x0) * 100 + Math.abs(q.coluna - p.coluna);
+      if (d < melhorDist) { melhorDist = d; melhor = id; }
     }
     if (melhor) return melhor;
   }
   return cursor;
 }
 
-// controle = 'h' ou 'v'; dx/dy em -1, 0, 1 (dx > 0 direita, dy > 0 para baixo)
-export function moverCursor(estado, cursor, controle, dx, dy) {
-  const p = analisarId(cursor);
-  if (!p) return cursor;
-  if (p.orientacao !== controle) return maisProximo(estado, cursor, controle) ?? cursor;
-  if (dx) return moverAoLongo(estado, cursor, Math.sign(dx));
-  if (dy) return moverEntreLinhas(estado, cursor, Math.sign(dy));
+// direcao = 'direita' | 'baixo' (botões do tabuleiro) ou 'esquerda' | 'cima' (só no teclado)
+export function moverCursor(estado, cursor, direcao) {
+  if (!analisarId(cursor)) return cursor;
+  if (direcao === 'direita') return moverNaFileira(estado, cursor, 1);
+  if (direcao === 'esquerda') return moverNaFileira(estado, cursor, -1);
+  if (direcao === 'baixo') return moverDeFileira(estado, cursor, 1);
+  if (direcao === 'cima') return moverDeFileira(estado, cursor, -1);
   return cursor;
-}
-
-// Potenciômetro como posição: o par de potenciômetros aponta para (linha, coluna) de uma
-// orientação. Fica nesse palito se ele for removível; senão, vai para o removível mais
-// próximo dele, da mesma orientação. Sem nenhum removível dessa orientação, não muda.
-export function posicionarCursor(estado, cursor, orientacao, linha, coluna) {
-  const { linhas, largura } = dimensoes(estado.n, orientacao);
-  const l = Math.min(Math.max(linha, 0), linhas - 1);
-  const c = Math.min(Math.max(coluna, 0), largura - 1);
-  const alvo = idPalito(orientacao, l, c);
-  if (removivel(estado, alvo)) return alvo;
-  return maisProximo(estado, alvo, orientacao) ?? cursor;
 }
 
 // cursor válido para o estado atual: se o palito deixou de ser removível, vai para o mais

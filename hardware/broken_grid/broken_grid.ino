@@ -1,5 +1,5 @@
 // Broken Grid - versão para o Tinkercad Circuits
-// Uno + 40 NeoPixels + 4 potenciômetros (no lugar dos dois joysticks KY-023) + 3 botões.
+// Uno + 40 NeoPixels + 5 botões (DIREITA, BAIXO, REMOVER, VOLTAR, SOLUÇÃO).
 //
 // Aqui o jogo inteiro roda no Arduino. Serve para testar fiação, ordem dos LEDs e cursor
 // antes de montar. No tabuleiro de verdade quem roda o jogo é o PC, e o Uno usa o
@@ -11,8 +11,7 @@
 //   h:r:c -> r*9 + c          v:r:c -> r*9 + 4 + (4 - c)
 // Os ids h:r:c / v:r:c são os mesmos de src/core/geometry.js.
 //
-// O Tinkercad não tem FastLED nem KY-023, então aqui é Adafruit_NeoPixel (mesmo brilho 80)
-// e um potenciômetro para cada eixo.
+// O Tinkercad não tem FastLED, então aqui é Adafruit_NeoPixel (mesmo brilho 80).
 
 #include <Adafruit_NeoPixel.h>
 #include <avr/pgmspace.h>
@@ -26,11 +25,11 @@ const uint8_t MAX_QUADRADOS = 30;  // 16 + 9 + 4 + 1
 const uint8_t SEM_CURSOR = 255;
 
 const uint8_t PINO_LEDS = 6;
-const uint8_t PINO_H_X = A0, PINO_H_Y = A1;  // joystick H: palitos horizontais
-const uint8_t PINO_V_X = A2, PINO_V_Y = A3;  // joystick V: palitos verticais
 const uint8_t PINO_REMOVER = 2;
 const uint8_t PINO_VOLTAR = 3;
 const uint8_t PINO_SOLUCAO = 4;
+const uint8_t PINO_DIREITA = 7;
+const uint8_t PINO_BAIXO = 8;
 
 // Mesmo brilho da montagem real. Com 255 o 5V simulado não aguenta e as cores saem erradas.
 const uint8_t BRILHO = 80;
@@ -41,14 +40,9 @@ const uint16_t DEBOUNCE_MS = 25;
 const uint16_t PISCA_MS = 300;
 const uint16_t ORCAMENTO_NOS = 20000;
 
-// analogRead vai de 0 a 1023. O centro de cada eixo é lido ao ligar; passar de ZONA_MORTA
-// para qualquer lado conta como empurrado.
-const int ZONA_MORTA = 200;
-const uint16_t REPETE_APOS_MS = 500;   // segurando, começa a repetir depois de 500 ms
-const uint16_t REPETE_CADA_MS = 250;   // e repete a cada 250 ms
-// Sem inversão: X alto = direita, Y alto = baixo. Trocar se o joystick estiver girado.
-const bool INVERTER_X = false;
-const bool INVERTER_Y = false;
+// segurando DIREITA ou BAIXO, o cursor começa a repetir depois de 500 ms, a cada 250 ms
+const uint16_t REPETE_APOS_MS = 500;
+const uint16_t REPETE_CADA_MS = 250;
 
 enum Estado : uint8_t { REMOVIVEL, BLOQUEADO, QUEBRADO, REMOVIDO };
 
@@ -248,8 +242,13 @@ void resolver() {
 }
 
 // ---- cursor ----
-// O cursor só para em palito removível. "Linha" aqui é uma fileira de palitos na mesma
-// orientação: 5 linhas de 4 horizontais (r = 0..4) e 4 linhas de 5 verticais (r = 0..3).
+// O cursor só para em palito removível. "Fileira" é uma linha de palitos na mesma
+// orientação, na ordem da corrente: h0, v0, h1, v1, h2, v2, h3, v3, h4 (9 fileiras).
+// Fileira horizontal tem 4 palitos; vertical tem 5.
+//   DIREITA: próximo removível da mesma fileira; no fim, volta ao começo da fileira.
+//   BAIXO:   próxima fileira com removível (alternando horizontal e vertical); depois da
+//            última volta à primeira. Vai para o palito mais perto na horizontal (empate:
+//            mesmo número de coluna).
 
 bool removivel(uint8_t p) { return estado[p] == REMOVIVEL; }
 
@@ -287,51 +286,51 @@ void anunciarCursor() {
   Serial.println();
 }
 
-// anda na mesma linha até o próximo removível; se não tiver, não se mexe
-void moverAoLongo(int8_t passo) {
+const uint8_t NUM_FILEIRAS = 2 * N + 1;
+
+uint8_t fileiraDe(uint8_t p) { return ehHorizontal(p) ? 2 * linhaDe(p) : 2 * linhaDe(p) + 1; }
+
+// DIREITA: próximo removível da fileira, dando a volta; se não tiver outro, não se mexe
+void moverNaFileira() {
   bool h = ehHorizontal(cursor);
   uint8_t r = linhaDe(cursor);
-  int8_t largura = h ? N : N + 1;
-  for (int8_t c = colunaDe(cursor) + passo; c >= 0 && c < largura; c += passo) {
-    uint8_t p = palitoEm(h, r, c);
-    if (removivel(p)) { cursor = p; break; }
+  uint8_t largura = h ? N : N + 1;
+  uint8_t c0 = colunaDe(cursor);
+  for (uint8_t k = 1; k < largura; k++) {
+    uint8_t p = palitoEm(h, r, (c0 + k) % largura);
+    if (removivel(p)) { cursor = p; return; }
   }
 }
 
-// pula para a próxima linha (no sentido do passo) que tenha removível, no palito mais perto
-// da coluna atual (empate: menor coluna); se nenhuma tiver, não se mexe
-void moverEntreLinhas(int8_t passo) {
-  bool h = ehHorizontal(cursor);
-  int8_t linhas = h ? N + 1 : N;
-  int8_t largura = h ? N : N + 1;
+// BAIXO: próxima fileira que tenha removível, dando a volta
+void moverDeFileira() {
+  uint8_t f0 = fileiraDe(cursor);
+  int8_t x0 = centroX(cursor);
   int8_t c0 = colunaDe(cursor);
-  for (int8_t r = linhaDe(cursor) + passo; r >= 0 && r < linhas; r += passo) {
+  for (uint8_t k = 1; k <= NUM_FILEIRAS; k++) {
+    uint8_t f = (f0 + k) % NUM_FILEIRAS;
+    bool h = f % 2 == 0;
+    uint8_t r = f / 2;
+    int8_t largura = h ? N : N + 1;
     uint8_t melhor = SEM_CURSOR;
-    int8_t melhorDist = 127;
+    int melhorDist = 0x7FFF;
     for (int8_t c = 0; c < largura; c++) {
       uint8_t p = palitoEm(h, r, c);
-      int8_t d = c > c0 ? c - c0 : c0 - c;
-      if (removivel(p) && d < melhorDist) { melhorDist = d; melhor = p; }
+      if (!removivel(p)) continue;
+      int d = abs(centroX(p) - x0) * 100 + abs(c - c0);
+      if (d < melhorDist) { melhorDist = d; melhor = p; }
     }
     if (melhor != SEM_CURSOR) { cursor = melhor; return; }
   }
 }
 
-// joystick 0 = H (horizontais), 1 = V (verticais). Se o cursor está num palito da outra
-// orientação, o primeiro toque só troca para o removível mais perto, sem andar.
-void moverCursor(uint8_t joystick, int8_t dx, int8_t dy) {
+// direcao 0 = DIREITA, 1 = BAIXO
+void moverCursor(uint8_t direcao) {
   if (cursor == SEM_CURSOR) return;
   uint8_t antes = cursor;
-  bool querHorizontal = joystick == 0;
-  if (ehHorizontal(cursor) != querHorizontal) {
-    uint8_t p = maisProximo(cursor, querHorizontal ? 1 : 2);
-    if (p != SEM_CURSOR) cursor = p;
-  } else if (dx) {
-    moverAoLongo(dx);
-  } else {
-    moverEntreLinhas(dy);
-  }
-  if (cursor != antes) anunciarCursor();  // parado no fim da linha não anuncia de novo
+  if (direcao == 0) moverNaFileira();
+  else moverDeFileira();
+  if (cursor != antes) anunciarCursor();  // sem outro removível não anuncia de novo
 }
 
 // ---- ações ----
@@ -496,82 +495,45 @@ void desenhar(uint32_t agora) {
   leds.show();
 }
 
-// ---- joysticks ----
-
-int8_t direcaoDoEixo(int valor, int centro, bool inverter) {
-  int8_t d = valor < centro - ZONA_MORTA ? -1 : valor > centro + ZONA_MORTA ? 1 : 0;
-  return inverter ? -d : d;
-}
-
-uint8_t pinosJoystick[2][2] = {{PINO_H_X, PINO_H_Y}, {PINO_V_X, PINO_V_Y}};
-int centroJoystick[2][2];
-int8_t ultimoDx[2] = {0, 0}, ultimoDy[2] = {0, 0};
-uint32_t proximaRepeticao[2] = {0, 0};
-
-// centro = média de 8 leituras de cada eixo. Os joysticks têm que estar soltos no reset.
-void calibrarJoysticks() {
-  for (uint8_t j = 0; j < 2; j++)
-    for (uint8_t e = 0; e < 2; e++) {
-      long soma = 0;
-      for (uint8_t k = 0; k < 8; k++) soma += analogRead(pinosJoystick[j][e]);
-      centroJoystick[j][e] = soma / 8;
-    }
-}
-
-void lerJoysticks(uint32_t agora) {
-  for (uint8_t j = 0; j < 2; j++) {
-    int vx = analogRead(pinosJoystick[j][0]);
-    int vy = analogRead(pinosJoystick[j][1]);
-    int8_t dx = direcaoDoEixo(vx, centroJoystick[j][0], INVERTER_X);
-    int8_t dy = direcaoDoEixo(vy, centroJoystick[j][1], INVERTER_Y);
-    // diagonal: vale o eixo mais empurrado
-    if (dx && dy) {
-      if (abs(vx - centroJoystick[j][0]) >= abs(vy - centroJoystick[j][1])) dy = 0; else dx = 0;
-    }
-    bool mudou = dx != ultimoDx[j] || dy != ultimoDy[j];
-    ultimoDx[j] = dx;
-    ultimoDy[j] = dy;
-    if (!dx && !dy) continue;
-    // move na hora em que empurra; segurando, repete conforme REPETE_APOS_MS / REPETE_CADA_MS
-    if (mudou) proximaRepeticao[j] = agora + REPETE_APOS_MS;
-    else if (agora >= proximaRepeticao[j]) proximaRepeticao[j] = agora + REPETE_CADA_MS;
-    else continue;
-    if (jogadaPermitida()) { moverCursor(j, dx, dy); precisaDesenhar = true; }
-  }
-}
-
 // ---- botões ----
 // INPUT_PULLUP: botão entre o pino e o GND, então apertado = LOW.
+// 0 REMOVER, 1 VOLTAR, 2 SOLUÇÃO, 3 DIREITA, 4 BAIXO. DIREITA e BAIXO repetem segurando.
 
-uint8_t pinosBotao[3] = {PINO_REMOVER, PINO_VOLTAR, PINO_SOLUCAO};
-bool botaoApertado[3] = {false, false, false};
-bool botaoLeitura[3] = {false, false, false};
-uint32_t botaoMudouEm[3] = {0, 0, 0};
+const uint8_t NUM_BOTOES = 5;
+uint8_t pinosBotao[NUM_BOTOES] = {PINO_REMOVER, PINO_VOLTAR, PINO_SOLUCAO, PINO_DIREITA, PINO_BAIXO};
+bool botaoApertado[NUM_BOTOES] = {false, false, false, false, false};
+bool botaoLeitura[NUM_BOTOES] = {false, false, false, false, false};
+uint32_t botaoMudouEm[NUM_BOTOES] = {0, 0, 0, 0, 0};
+uint32_t proximaRepeticao[NUM_BOTOES] = {0, 0, 0, 0, 0};
 
 void acaoDoBotao(uint8_t i) {
   if (i == 2) alternarSolucao();
   else if (!jogadaPermitida()) return;
   else if (i == 0) remover();
-  else desfazer();
+  else if (i == 1) desfazer();
+  else moverCursor(i == 3 ? 0 : 1);
   precisaDesenhar = true;
 }
 
-// debounce: a leitura só vale depois de ficar DEBOUNCE_MS sem mudar
+// debounce: a leitura só vale depois de ficar DEBOUNCE_MS sem mudar.
+// Segurando DIREITA ou BAIXO repete; a subtração com sinal aguenta o millis() dar a volta.
 void lerBotoes(uint32_t agora) {
-  for (uint8_t i = 0; i < 3; i++) {
+  for (uint8_t i = 0; i < NUM_BOTOES; i++) {
     bool leitura = digitalRead(pinosBotao[i]) == LOW;
     if (leitura != botaoLeitura[i]) { botaoLeitura[i] = leitura; botaoMudouEm[i] = agora; }
     if (agora - botaoMudouEm[i] >= DEBOUNCE_MS && leitura != botaoApertado[i]) {
       botaoApertado[i] = leitura;
-      if (leitura) acaoDoBotao(i);
+      if (leitura) { acaoDoBotao(i); proximaRepeticao[i] = agora + REPETE_APOS_MS; }
+    } else if (botaoApertado[i] && i >= 3 && (int32_t)(agora - proximaRepeticao[i]) >= 0) {
+      acaoDoBotao(i);
+      proximaRepeticao[i] = agora + REPETE_CADA_MS;
     }
   }
 }
 
 // ---- serial ----
 // Comandos pelo Monitor Serial, um por linha, para testar sem os controles:
-//   H D | H E | H C | H B      joystick H: direita, esquerda, cima, baixo
-//   V D | V E | V C | V B      joystick V
+//   DIREITA (ou D) | BAIXO (ou B)   mesmo efeito dos botões
 //   REMOVER [id] | VOLTAR | SOLUCAO | NOVA | GRADE <n> | ESTADO
 
 char linha[24];
@@ -595,15 +557,8 @@ void imprimirEstado() {
 void interpretar(char *cmd) {
   char *arg = strchr(cmd, ' ');
   if (arg) *arg++ = '\0';
-  if ((!strcmp(cmd, "H") || !strcmp(cmd, "V")) && arg && arg[1] == '\0') {
-    int8_t dx = 0, dy = 0;
-    if (arg[0] == 'D') dx = 1;
-    else if (arg[0] == 'E') dx = -1;
-    else if (arg[0] == 'C') dy = -1;
-    else if (arg[0] == 'B') dy = 1;
-    else { Serial.println(F("ERRO direcao_invalida")); return; }
-    if (jogadaPermitida()) moverCursor(cmd[0] == 'H' ? 0 : 1, dx, dy);
-  }
+  if (!strcmp(cmd, "DIREITA") || !strcmp(cmd, "D")) { if (jogadaPermitida()) moverCursor(0); }
+  else if (!strcmp(cmd, "BAIXO") || !strcmp(cmd, "B")) { if (jogadaPermitida()) moverCursor(1); }
   else if (!strcmp(cmd, "REMOVER")) {
     if (arg) {
       uint8_t p = lerId(arg);
@@ -652,19 +607,17 @@ void lerSerial(uint32_t agora) {
 
 void setup() {
   Serial.begin(9600);
-  for (uint8_t i = 0; i < 3; i++) pinMode(pinosBotao[i], INPUT_PULLUP);
-  calibrarJoysticks();
+  for (uint8_t i = 0; i < NUM_BOTOES; i++) pinMode(pinosBotao[i], INPUT_PULLUP);
   leds.begin();
   prepararCores();
   leds.show();
   montarQuadrados();
-  Serial.println(F("BROKEN_GRID tinkercad v2 n=4"));
+  Serial.println(F("BROKEN_GRID tinkercad v3 n=4"));
   carregarGrade(0);
 }
 
 void loop() {
   uint32_t agora = millis();
-  lerJoysticks(agora);
   lerBotoes(agora);
   lerSerial(agora);
   desenhar(agora);

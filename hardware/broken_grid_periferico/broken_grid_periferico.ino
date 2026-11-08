@@ -1,7 +1,7 @@
 // Broken Grid - firmware do tabuleiro (Uno ligado no PC)
 //
 // O jogo roda no navegador (Chrome/Edge). O Uno só faz duas coisas:
-//   1. lê os 4 potenciômetros e os 4 botões e manda para o PC pela USB
+//   1. lê os 6 botões e manda para o PC pela USB
 //   2. recebe do PC a cor de cada um dos 40 LEDs e acende a fita WS2812B
 // Regras, solver, cursor e cronômetro ficam no JavaScript (src/tabuleiro/ e
 // src/core/cursor.js).
@@ -10,11 +10,11 @@
 // 115200 baud, uma mensagem por linha (termina em \n).
 //
 // Uno -> PC
-//   PRONTO broken-grid-periferico v1 n=4 modo=posicao   ao ligar e quando recebe "?"
-//   POS H <linha> <coluna>     modo posição: o controle H aponta para h:linha:coluna
-//   POS V <linha> <coluna>     mesmo para o controle V (v:linha:coluna)
-//   MOVER H D|E|C|B            modo joystick: direita, esquerda, cima, baixo
-//   MOVER V D|E|C|B
+//   PRONTO broken-grid-periferico v2 n=4 modo=botoes   ao ligar e quando recebe "?"
+//   BOTAO DIREITA              cursor para o próximo palito da fileira (dá a volta)
+//   BOTAO BAIXO                cursor para a próxima fileira, alternando horizontais e
+//                              verticais (dá a volta)
+//                              segurando DIREITA ou BAIXO, repete depois de 500 ms, a cada 250 ms
 //   BOTAO REMOVER | BOTAO VOLTAR | BOTAO SOLUCAO | BOTAO NOVO
 //   OK                         recebeu o quadro e já acendeu
 //   ERRO <motivo>              quadro_invalido | comando_desconhecido | linha_longa
@@ -34,10 +34,8 @@
 //
 // ---- ligação ----
 //   D6 -> resistor 330 ohm -> DIN do LED 0
-//   A0 / A1 = potenciômetros do controle H (X / Y)
-//   A2 / A3 = potenciômetros do controle V (X / Y)
-//     potenciômetro: pontas no 5V e no GND, perna do meio no pino analógico
-//   D2 = REMOVER, D3 = VOLTAR, D4 = SOLUÇÃO, D5 = NOVO GRID (outro terminal no GND)
+//   D2 = REMOVER, D3 = VOLTAR, D4 = SOLUÇÃO, D5 = NOVO GRID, D7 = DIREITA, D8 = BAIXO
+//     cada botão: um terminal no pino, o outro no GND (INPUT_PULLUP, sem resistor)
 //   LEDs na fonte de 5 V separada, com GND comum. Nunca ligar essa fonte no 5V do Uno.
 //
 // Fita em zigue-zague:  h:r:c -> r*9 + c      v:r:c -> r*9 + 4 + (4 - c)
@@ -46,40 +44,22 @@
 
 // ---- configuração ----
 
-// Deixar false enquanto os potenciômetros não estiverem ligados: com A0..A3 soltos a
-// leitura é só ruído e o cursor anda sozinho.
-const bool POTENCIOMETROS_LIGADOS = true;
-
-// true:  a posição do potenciômetro escolhe o palito. É o modo certo para potenciômetro,
-//        que não volta sozinho para o meio.
-// false: funciona como joystick (girou para um lado anda, voltou ao meio para).
-const bool MODO_POSICAO = true;
-
-// inverte cada eixo, na ordem H-X, H-Y, V-X, V-Y
-// (sem inversão: X alto = direita, Y alto = baixo)
-const bool INVERTER[4] = {true, false, true, false};
-
 const uint8_t N = 4;
 const uint8_t NUM_LEDS = 2 * N * (N + 1);  // 40
 
 const uint8_t PINO_LEDS = 6;
-const uint8_t PINOS_EIXO[4] = {A0, A1, A2, A3};
-const uint8_t NUM_BOTOES = 4;
-const uint8_t PINOS_BOTAO[NUM_BOTOES] = {2, 3, 4, 5};
+const uint8_t NUM_BOTOES = 6;
+const uint8_t PINOS_BOTAO[NUM_BOTOES] = {2, 3, 4, 5, 7, 8};
+// os dois últimos (DIREITA e BAIXO) repetem enquanto ficam apertados
+const bool BOTAO_REPETE[NUM_BOTOES] = {false, false, false, false, true, true};
 
 const long BAUD = 115200;
 const uint8_t BRILHO = 80;           // o mesmo da especificação
 const uint16_t PISCA_MS = 300;
 const uint16_t DEBOUNCE_MS = 25;
 const uint16_t AVISO_LED_MS = 40;    // o LED "L" da placa pisca a cada quadro recebido
-
-// modo posição: quanto o valor tem que entrar na faixa nova para trocar (evita o cursor
-// ficar tremendo na divisa entre duas faixas)
-const int HISTERESE = 25;
-// modo joystick
-const int ZONA_MORTA = 200;
-const uint16_t REPETE_APOS_MS = 500;
-const uint16_t REPETE_CADA_MS = 250;
+const uint16_t REPETE_APOS_MS = 500; // segurando DIREITA/BAIXO, começa a repetir depois disso
+const uint16_t REPETE_CADA_MS = 250; // e repete nesse intervalo
 
 Adafruit_NeoPixel leds(NUM_LEDS, PINO_LEDS, NEO_GRB + NEO_KHZ800);
 
@@ -137,9 +117,9 @@ void mostrar(uint32_t agora) {
 // ---- serial ----
 
 void anunciarPronto() {
-  Serial.print(F("PRONTO broken-grid-periferico v1 n="));
+  Serial.print(F("PRONTO broken-grid-periferico v2 n="));
   Serial.print(N);
-  Serial.println(MODO_POSICAO ? F(" modo=posicao") : F(" modo=joystick"));
+  Serial.println(F(" modo=botoes"));
 }
 
 void interpretar() {
@@ -185,10 +165,16 @@ void lerSerial() {
 // INPUT_PULLUP: solto = HIGH, apertado = LOW (o botão fecha o pino com o GND).
 // Debounce: a leitura só vale depois de ficar DEBOUNCE_MS sem mudar.
 
-const char *const NOMES_BOTAO[NUM_BOTOES] = {"REMOVER", "VOLTAR", "SOLUCAO", "NOVO"};
-bool botaoApertado[NUM_BOTOES] = {false, false, false, false};
-bool botaoLeitura[NUM_BOTOES] = {false, false, false, false};
-uint32_t botaoMudouEm[NUM_BOTOES] = {0, 0, 0, 0};
+const char *const NOMES_BOTAO[NUM_BOTOES] = {"REMOVER", "VOLTAR", "SOLUCAO", "NOVO", "DIREITA", "BAIXO"};
+bool botaoApertado[NUM_BOTOES] = {false, false, false, false, false, false};
+bool botaoLeitura[NUM_BOTOES] = {false, false, false, false, false, false};
+uint32_t botaoMudouEm[NUM_BOTOES] = {0, 0, 0, 0, 0, 0};
+uint32_t proximaRepeticao[NUM_BOTOES] = {0, 0, 0, 0, 0, 0};
+
+void avisarBotao(uint8_t i) {
+  Serial.print(F("BOTAO "));
+  Serial.println(NOMES_BOTAO[i]);
+}
 
 void lerBotoes(uint32_t agora) {
   for (uint8_t i = 0; i < NUM_BOTOES; i++) {
@@ -196,93 +182,13 @@ void lerBotoes(uint32_t agora) {
     if (leitura != botaoLeitura[i]) { botaoLeitura[i] = leitura; botaoMudouEm[i] = agora; }
     if (agora - botaoMudouEm[i] >= DEBOUNCE_MS && leitura != botaoApertado[i]) {
       botaoApertado[i] = leitura;
-      if (leitura) { Serial.print(F("BOTAO ")); Serial.println(NOMES_BOTAO[i]); }
+      if (leitura) { avisarBotao(i); proximaRepeticao[i] = agora + REPETE_APOS_MS; }
+    } else if (botaoApertado[i] && BOTAO_REPETE[i] && (int32_t)(agora - proximaRepeticao[i]) >= 0) {
+      // segurando: repete. A subtração com sinal continua certa quando o millis() dá a
+      // volta (~49 dias).
+      avisarBotao(i);
+      proximaRepeticao[i] = agora + REPETE_CADA_MS;
     }
-  }
-}
-
-// ---- potenciômetros ----
-
-int lerEixo(uint8_t e) {
-  int v = analogRead(PINOS_EIXO[e]);
-  return INVERTER[e] ? 1023 - v : v;
-}
-
-// Modo posição: cada eixo é cortado em faixas iguais, uma por coluna ou linha.
-// controle H: X escolhe a coluna (0..3), Y a linha (0..4)
-// controle V: X escolhe a coluna (0..4), Y a linha (0..3)
-const uint8_t FAIXAS[4] = {N, N + 1, N + 1, N};
-int8_t faixaAtual[4] = {-1, -1, -1, -1};
-
-int8_t faixaDe(int valor, uint8_t faixas) {
-  int8_t f = (int32_t)valor * faixas / 1024;
-  return f >= (int8_t)faixas ? faixas - 1 : f;
-}
-
-// só troca de faixa quando o valor já entrou HISTERESE unidades na nova.
-// Devolve true se trocou.
-bool atualizarFaixa(uint8_t e, int valor) {
-  int8_t nova = faixaDe(valor, FAIXAS[e]);
-  if (faixaAtual[e] < 0) { faixaAtual[e] = nova; return false; }  // primeira leitura: só guarda
-  if (nova == faixaAtual[e]) return false;
-  int32_t inicio = (int32_t)nova * 1024 / FAIXAS[e];
-  int32_t fim = (int32_t)(nova + 1) * 1024 / FAIXAS[e];
-  if (nova > faixaAtual[e] && valor < inicio + HISTERESE) return false;
-  if (nova < faixaAtual[e] && valor > fim - HISTERESE) return false;
-  faixaAtual[e] = nova;
-  return true;
-}
-
-// manda POS só quando algum eixo do controle mudou de faixa
-void lerModoPosicao() {
-  for (uint8_t j = 0; j < 2; j++) {
-    bool mudouX = atualizarFaixa(2 * j, lerEixo(2 * j));
-    bool mudouY = atualizarFaixa(2 * j + 1, lerEixo(2 * j + 1));
-    if (!mudouX && !mudouY) continue;
-    Serial.print(j == 0 ? F("POS H ") : F("POS V "));
-    Serial.print(faixaAtual[2 * j + 1]);   // linha
-    Serial.print(' ');
-    Serial.println(faixaAtual[2 * j]);     // coluna
-  }
-}
-
-// Modo joystick: mesma lógica do sketch do Tinkercad.
-int centro[4];
-int8_t ultimoDx[2] = {0, 0}, ultimoDy[2] = {0, 0};
-uint32_t proximaRepeticao[2] = {0, 0};
-
-// centro = média de 8 leituras de cada eixo, com os controles soltos
-void calibrar() {
-  for (uint8_t e = 0; e < 4; e++) {
-    long soma = 0;
-    for (uint8_t k = 0; k < 8; k++) soma += lerEixo(e);
-    centro[e] = soma / 8;
-  }
-}
-
-int8_t direcao(int valor, int c) {
-  return valor < c - ZONA_MORTA ? -1 : valor > c + ZONA_MORTA ? 1 : 0;
-}
-
-void lerModoJoystick(uint32_t agora) {
-  for (uint8_t j = 0; j < 2; j++) {
-    int vx = lerEixo(2 * j), vy = lerEixo(2 * j + 1);
-    int8_t dx = direcao(vx, centro[2 * j]);
-    int8_t dy = direcao(vy, centro[2 * j + 1]);
-    if (dx && dy) {  // diagonal: vale o eixo mais empurrado
-      if (abs(vx - centro[2 * j]) >= abs(vy - centro[2 * j + 1])) dy = 0; else dx = 0;
-    }
-    bool mudou = dx != ultimoDx[j] || dy != ultimoDy[j];
-    ultimoDx[j] = dx;
-    ultimoDy[j] = dy;
-    if (!dx && !dy) continue;
-    // move na hora em que empurra; segurando, repete. A subtração com sinal continua
-    // certa quando o millis() dá a volta (~49 dias).
-    if (mudou) proximaRepeticao[j] = agora + REPETE_APOS_MS;
-    else if ((int32_t)(agora - proximaRepeticao[j]) >= 0) proximaRepeticao[j] = agora + REPETE_CADA_MS;
-    else continue;
-    Serial.print(j == 0 ? F("MOVER H ") : F("MOVER V "));
-    Serial.println(dx > 0 ? 'D' : dx < 0 ? 'E' : dy < 0 ? 'C' : 'B');
   }
 }
 
@@ -292,7 +198,6 @@ void setup() {
   Serial.begin(BAUD);
   pinMode(LED_BUILTIN, OUTPUT);
   for (uint8_t i = 0; i < NUM_BOTOES; i++) pinMode(PINOS_BOTAO[i], INPUT_PULLUP);
-  if (POTENCIOMETROS_LIGADOS && !MODO_POSICAO) calibrar();
   leds.begin();
   leds.setBrightness(BRILHO);
   leds.clear();
@@ -304,10 +209,6 @@ void loop() {
   uint32_t agora = millis();
   lerSerial();
   lerBotoes(agora);
-  if (POTENCIOMETROS_LIGADOS) {
-    if (MODO_POSICAO) lerModoPosicao();
-    else lerModoJoystick(agora);
-  }
   // apaga o LED "L" depois de AVISO_LED_MS
   if (avisoAte && (int32_t)(agora - avisoAte) >= 0) { digitalWrite(LED_BUILTIN, LOW); avisoAte = 0; }
   mostrar(agora);

@@ -11,16 +11,16 @@ import { criarDesempenho } from './performance.js';
 import { criarComparacao } from './comparacao.js';
 import { criarPainelTabuleiro } from './painel-tabuleiro.js';
 import {
-  cursorValido, maisProximo, moverCursor as regraMoverCursor, posicionarCursor, primeiroRemovivel,
+  cursorValido, maisProximo, moverCursor as regraMoverCursor, primeiroRemovivel,
 } from '../core/cursor.js';
 import { montarQuadro, N_DO_TABULEIRO } from '../tabuleiro/protocolo.js';
 import { criarConexao, suportaWebSerial } from '../tabuleiro/serial.js';
 
 const TAMANHO_INICIAL = 4;
 
-// teclado no lugar dos controles do tabuleiro: setas = controle H, WASD = controle V
-const TECLAS_H = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-const TECLAS_V = { d: [1, 0], a: [-1, 0], w: [0, -1], s: [0, 1] };
+// teclado no lugar dos botões do tabuleiro: seta direita = DIREITA, seta para baixo = BAIXO.
+// Esquerda e cima fazem o caminho inverso (o tabuleiro não tem esses botões).
+const TECLAS_DIRECAO = { ArrowRight: 'direita', ArrowDown: 'baixo', ArrowLeft: 'esquerda', ArrowUp: 'cima' };
 
 export async function iniciarAplicacao(documento) {
   const elementos = {
@@ -84,10 +84,9 @@ export async function iniciarAplicacao(documento) {
 
   const conexao = criarConexao({
     aoEvento: (evento) => {
-      if (evento.tipo === 'mover') moverCursor(evento.controle, evento.dx, evento.dy);
-      else if (evento.tipo === 'pos') posicionar(evento.controle, evento.linha, evento.coluna);
-      else if (evento.tipo === 'botao') {
-        if (evento.botao === 'remover') remover();
+      if (evento.tipo === 'botao') {
+        if (evento.botao === 'direita' || evento.botao === 'baixo') moverCursor(evento.botao);
+        else if (evento.botao === 'remover') remover();
         else if (evento.botao === 'voltar') voltar();
         else if (evento.botao === 'solucao') alternarSolucao();
         else if (evento.botao === 'novo') reiniciarGradeAtual();
@@ -146,17 +145,11 @@ export async function iniciarAplicacao(documento) {
     else if (vista === 'jogo') mostrarSolucao();
   }
 
-  function moverCursor(controle, dx, dy) {
+  function moverCursor(direcao) {
     if (!jogadaPermitida()) return;
     const atual = cursorAtual();
     if (!atual) return;
-    const novo = regraMoverCursor(jogo.obterEstado(), atual, controle, dx, dy);
-    if (novo !== store.obter().cursor) store.atualizar({ cursor: novo });
-  }
-
-  function posicionar(controle, linha, coluna) {
-    if (!jogadaPermitida()) return;
-    const novo = posicionarCursor(jogo.obterEstado(), cursorAtual(), controle, linha, coluna);
+    const novo = regraMoverCursor(jogo.obterEstado(), atual, direcao);
     if (novo !== store.obter().cursor) store.atualizar({ cursor: novo });
   }
 
@@ -169,11 +162,10 @@ export async function iniciarAplicacao(documento) {
     const emControle = alvo instanceof Element && alvo.closest('button, [data-id]');
     const tecla = evento.key.length === 1 ? evento.key.toLowerCase() : evento.key;
 
-    if (TECLAS_H[tecla] || TECLAS_V[tecla]) {
+    if (Object.hasOwn(TECLAS_DIRECAO, tecla)) {
       if (store.obter().vista !== 'jogo') return;
-      const [dx, dy] = TECLAS_H[tecla] ?? TECLAS_V[tecla];
       evento.preventDefault();
-      moverCursor(TECLAS_H[tecla] ? 'h' : 'v', dx, dy);
+      moverCursor(TECLAS_DIRECAO[tecla]);
     } else if (tecla === 'Enter' && !emControle) {
       evento.preventDefault();
       remover();

@@ -10,8 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { criarPartida, estadoInicial } from '../src/core/engine.js';
 import {
-  indiceNaCorrente, ordemDaCorrente, primeiroRemovivel, maisProximo, moverCursor, posicionarCursor,
-  cursorValido,
+  indiceNaCorrente, ordemDaCorrente, primeiroRemovivel, maisProximo, moverCursor, cursorValido,
 } from '../src/core/cursor.js';
 import { montarQuadro, interpretarLinha } from '../src/tabuleiro/protocolo.js';
 import { criarConexao, suportaWebSerial } from '../src/tabuleiro/serial.js';
@@ -70,22 +69,39 @@ function verificarCursor() {
   const e = criarPartida(configG4001).obterEstado();
   let c = primeiroRemovivel(e);
   checar('1. início no primeiro removível da corrente', c === 'h:0:0', c);
-  c = moverCursor(e, c, 'h', 1, 0);
-  checar('2. H direita -> h:0:1', c === 'h:0:1', c);
-  c = moverCursor(e, c, 'h', 0, 1);
-  checar('3. H baixo pula bloqueados e quebrado -> h:1:0', c === 'h:1:0', c);
-  c = moverCursor(e, c, 'v', 0, 1);
-  checar('4. controle V troca para o vertical mais próximo -> v:0:0', c === 'v:0:0', c);
-  c = moverCursor(e, c, 'v', 1, 0);
-  checar('5. V direita pula v:0:1 quebrado -> v:0:2', c === 'v:0:2', c);
+  c = moverCursor(e, c, 'direita');
+  checar('2. DIREITA -> h:0:1', c === 'h:0:1', c);
+  c = moverCursor(e, c, 'baixo');
+  checar('3. BAIXO desce para a fileira de verticais, pula v:0:1 quebrado -> v:0:2', c === 'v:0:2', c);
+  c = moverCursor(e, c, 'baixo');
+  checar('4. BAIXO volta aos horizontais, pula bloqueados e quebrado -> h:1:0', c === 'h:1:0', c);
+  c = moverCursor(e, c, 'direita');
+  checar('5. DIREITA sem outro removível na fileira fica parado -> h:1:0', c === 'h:1:0', c);
+  c = moverCursor(e, c, 'baixo');
+  checar('6. BAIXO -> v:1:0', c === 'v:1:0', c);
 
   secao('cursor: regras');
 
   const limpa = criarPartida({ id: 'l', n: 4, quebrados: [], bloqueados: [] }).obterEstado();
-  checar('no fim da linha fica parado', moverCursor(limpa, 'h:0:3', 'h', 1, 0) === 'h:0:3');
-  checar('na última linha fica parado', moverCursor(limpa, 'h:4:1', 'h', 0, 1) === 'h:4:1');
-  checar('troca de linha mantém a coluna', moverCursor(limpa, 'h:1:2', 'h', 0, 1) === 'h:2:2');
-  checar('vertical anda por 5 colunas', moverCursor(limpa, 'v:0:3', 'v', 1, 0) === 'v:0:4');
+  checar('DIREITA no fim da fileira volta ao começo', moverCursor(limpa, 'h:0:3', 'direita') === 'h:0:0');
+  checar('fileira vertical tem 5 palitos', moverCursor(limpa, 'v:0:3', 'direita') === 'v:0:4'
+    && moverCursor(limpa, 'v:0:4', 'direita') === 'v:0:0');
+  checar('BAIXO alterna horizontais e verticais na mesma coluna',
+    moverCursor(limpa, 'h:1:2', 'baixo') === 'v:1:2' && moverCursor(limpa, 'v:1:2', 'baixo') === 'h:2:2');
+  checar('BAIXO da última fileira volta à primeira', moverCursor(limpa, 'h:4:1', 'baixo') === 'h:0:1');
+  checar('BAIXO do vertical da ponta vai para o horizontal mais perto', moverCursor(limpa, 'v:2:4', 'baixo') === 'h:3:3');
+  let volta = 'h:0:3';
+  const percurso = [];
+  for (let i = 0; i < 9; i += 1) { volta = moverCursor(limpa, volta, 'baixo'); percurso.push(volta); }
+  checar('9 vezes BAIXO passa pelas 9 fileiras sem escorregar de coluna', volta === 'h:0:3'
+    && percurso.every((id) => id.endsWith(':3')), percurso.join(' '));
+  checar('teclado: esquerda e cima fazem o inverso', moverCursor(limpa, 'h:0:0', 'esquerda') === 'h:0:3'
+    && moverCursor(limpa, 'h:0:1', 'cima') === 'h:4:1' && moverCursor(limpa, 'v:1:2', 'cima') === 'h:1:2');
+  const semV0 = criarPartida({
+    id: 's', n: 4, quebrados: ['v:0:0', 'v:0:1', 'v:0:2', 'v:0:3', 'v:0:4'], bloqueados: [],
+  }).obterEstado();
+  checar('fileira sem removível é pulada', moverCursor(semV0, 'h:0:0', 'baixo') === 'h:1:0');
+  checar('direção desconhecida não mexe', moverCursor(limpa, 'h:0:0', 'pular') === 'h:0:0');
 
   const partida = criarPartida(configG4001);
   partida.removerPalito('h:0:2');
@@ -95,13 +111,14 @@ function verificarCursor() {
   checar('cursor removido é corrigido', cursorValido(depois, 'h:0:2') === prox);
   checar('sem cursor começa no primeiro removível', cursorValido(depois, null) === 'h:0:0');
 
-  secao('cursor: posição direta (potenciômetros)');
-
-  checar('alvo removível fica nele', posicionarCursor(limpa, 'h:0:0', 'h', 2, 3) === 'h:2:3');
-  checar('alvo fora da grade é limitado', posicionarCursor(limpa, 'h:0:0', 'v', 9, 9) === 'v:3:4');
-  const pos = posicionarCursor(e, 'h:0:0', 'h', 1, 1);  // h:1:1 é bloqueado em g4-001
-  checar('alvo bloqueado vai para o removível horizontal mais próximo', pos === 'h:1:0' || pos === 'h:0:1' || pos === 'h:2:1', pos);
-  checar('nunca para em palito não removível', e.palitos[pos] === 'removivel');
+  // percorrendo a grade inteira só com DIREITA e BAIXO, o cursor nunca para fora de removível
+  let p = primeiroRemovivel(e);
+  let sempreRemovivel = true;
+  for (let i = 0; i < 200; i += 1) {
+    p = moverCursor(e, p, i % 3 === 0 ? 'baixo' : 'direita');
+    if (e.palitos[p] !== 'removivel') sempreRemovivel = false;
+  }
+  checar('nunca para em palito não removível', sempreRemovivel, p);
 }
 
 // ------------------------------------------------------------------ protocolo
@@ -144,17 +161,15 @@ function verificarProtocolo() {
 
   secao('protocolo: eventos do Uno');
 
-  const pr = interpretarLinha('PRONTO broken-grid-periferico v1 n=4 modo=posicao');
-  checar('PRONTO', pr.tipo === 'pronto' && pr.versao === 'v1' && pr.n === 4 && pr.modo === 'posicao');
+  const pr = interpretarLinha('PRONTO broken-grid-periferico v2 n=4 modo=botoes');
+  checar('PRONTO', pr.tipo === 'pronto' && pr.versao === 'v2' && pr.n === 4 && pr.modo === 'botoes');
   checar('OK', interpretarLinha('OK').tipo === 'ok');
   checar('ERRO', interpretarLinha('ERRO quadro_invalido').motivo === 'quadro_invalido');
-  const mv = interpretarLinha('MOVER V E');
-  checar('MOVER V E', mv.tipo === 'mover' && mv.controle === 'v' && mv.dx === -1 && mv.dy === 0);
-  const ps = interpretarLinha('POS H 4 2\r');
-  checar('POS H 4 2 (com \\r)', ps.tipo === 'pos' && ps.controle === 'h' && ps.linha === 4 && ps.coluna === 2);
+  checar('BOTAO DIREITA (com \\r)', interpretarLinha('BOTAO DIREITA\r').botao === 'direita');
+  checar('BOTAO BAIXO', interpretarLinha('BOTAO BAIXO').botao === 'baixo');
   checar('BOTAO SOLUCAO', interpretarLinha('BOTAO SOLUCAO').botao === 'solucao');
   checar('BOTAO NOVO', interpretarLinha('BOTAO NOVO').botao === 'novo');
-  checar('lixo vira desconhecido', ['', 'MOVER X D', 'POS H a b', 'BOTAO PULAR', '\u0000OK'].every((l) => interpretarLinha(l).tipo === 'desconhecido'));
+  checar('lixo vira desconhecido', ['', 'MOVER H D', 'POS H 4 2', 'BOTAO toString', 'BOTAO PULAR', '\u0000OK'].every((l) => interpretarLinha(l).tipo === 'desconhecido'));
 }
 
 // ------------------------------------------------------------------ conexão
@@ -172,7 +187,7 @@ function criarUnoFalso({ perda = 0, responde = true, falhaAoAbrir = false, semen
   }
 
   function interpretar(l) {
-    if (l === '?') { if (responde) enviar('PRONTO broken-grid-periferico v1 n=4 modo=posicao\n'); return; }
+    if (l === '?') { if (responde) enviar('PRONTO broken-grid-periferico v2 n=4 modo=botoes\n'); return; }
     if (l.startsWith('L ')) {
       const q = l.slice(2);
       if (q.length !== 40 || !/^[.wrcg*]+$/.test(q)) { enviar('ERRO quadro_invalido\n'); return; }
@@ -199,7 +214,7 @@ function criarUnoFalso({ perda = 0, responde = true, falhaAoAbrir = false, semen
         },
       });
       // o Uno reinicia ao abrir a porta e anuncia que está pronto
-      if (responde) setTimeout(() => enviar('PRONTO broken-grid-periferico v1 n=4 modo=posicao\n'), 20);
+      if (responde) setTimeout(() => enviar('PRONTO broken-grid-periferico v2 n=4 modo=botoes\n'), 20);
     },
     async close() { uno.aberta = false; },
   };
@@ -267,14 +282,14 @@ async function verificarConexao() {
     checar('rajada: o Uno termina com o quadro mais recente', await ate(() => uno.leds === quadroAleatorio(50).slice(2)));
     checar('rajada: quadros intermediários são pulados', uno.recebidos < 10, String(uno.recebidos));
 
-    uno.falar('MOVER H D\nPOS V 3 4\nBOTAO REMOVER\nlixo qualquer\nBOTAO VOLTAR\n');
+    uno.falar('BOTAO DIREITA\nBOTAO BAIXO\nBOTAO REMOVER\nlixo qualquer\nBOTAO VOLTAR\n');
     await ate(() => eventos.length >= 4);
-    checar('eventos chegam na ordem', eventos.map((e) => e.tipo + (e.botao ?? e.controle)).join(',') === 'moverh,posv,botaoremover,botaovoltar',
+    checar('eventos chegam na ordem', eventos.map((e) => e.tipo + e.botao).join(',') === 'botaodireita,botaobaixo,botaoremover,botaovoltar',
       JSON.stringify(eventos));
     checar('último evento aparece no painel', ultima().ultimoEvento === 'BOTAO VOLTAR');
 
     uno.leds = null;
-    uno.falar('PRONTO broken-grid-periferico v1 n=4 modo=posicao\n');
+    uno.falar('PRONTO broken-grid-periferico v2 n=4 modo=botoes\n');
     checar('Uno reiniciou: quadro é reenviado', await ate(() => uno.leds === quadroAleatorio(50).slice(2)));
 
     await conexao.desconectar(`L ${'.'.repeat(40)}`);

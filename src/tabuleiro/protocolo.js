@@ -52,18 +52,19 @@ export function montarQuadro({ estado, estadoOriginal = null, vista = 'jogo', so
   return `L ${codigos.join('')}`;
 }
 
-const DIRECOES = { D: [1, 0], E: [-1, 0], C: [0, -1], B: [0, 1] };
-const BOTOES = { REMOVER: 'remover', VOLTAR: 'voltar', SOLUCAO: 'solucao', NOVO: 'novo' };
+const BOTOES = {
+  DIREITA: 'direita', BAIXO: 'baixo', REMOVER: 'remover', VOLTAR: 'voltar', SOLUCAO: 'solucao', NOVO: 'novo',
+};
 
 // Converte uma linha recebida do Uno num evento. Linhas que não seguem o protocolo viram
 // { tipo: 'desconhecido' } e são ignoradas pelo jogo (nunca lançam).
 export function interpretarLinha(texto) {
   const linha = String(texto).trim();
   const partes = linha.split(/\s+/);
-  const [cmd, a, b, c] = partes;
+  const [cmd, a, b] = partes;
 
   if (cmd === 'PRONTO') {
-    // PRONTO broken-grid-periferico v1 n=4 modo=posicao
+    // PRONTO broken-grid-periferico v2 n=4 modo=botoes
     const campos = Object.fromEntries(partes.slice(3).map((p) => p.split('=')));
     return {
       tipo: 'pronto', firmware: a ?? null, versao: b ?? null, n: Number(campos.n) || null, modo: campos.modo ?? null,
@@ -71,13 +72,6 @@ export function interpretarLinha(texto) {
   }
   if (cmd === 'OK' && partes.length === 1) return { tipo: 'ok' };
   if (cmd === 'ERRO') return { tipo: 'erro', motivo: a ?? 'sem_motivo' };
-  if (cmd === 'BOTAO' && BOTOES[a] && partes.length === 2) return { tipo: 'botao', botao: BOTOES[a] };
-  if (cmd === 'MOVER' && (a === 'H' || a === 'V') && DIRECOES[b] && partes.length === 3) {
-    const [dx, dy] = DIRECOES[b];
-    return { tipo: 'mover', controle: a.toLowerCase(), dx, dy };
-  }
-  if (cmd === 'POS' && (a === 'H' || a === 'V') && partes.length === 4 && /^\d+$/.test(b) && /^\d+$/.test(c)) {
-    return { tipo: 'pos', controle: a.toLowerCase(), linha: Number(b), coluna: Number(c) };
-  }
+  if (cmd === 'BOTAO' && Object.hasOwn(BOTOES, a) && partes.length === 2) return { tipo: 'botao', botao: BOTOES[a] };
   return { tipo: 'desconhecido', linha };
 }

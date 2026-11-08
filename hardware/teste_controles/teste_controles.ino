@@ -1,60 +1,58 @@
-// Broken Grid - teste dos potenciômetros e botões (rodar antes de fechar a caixa)
+// Broken Grid - teste dos botões (rodar antes de fechar a caixa)
 //
-// 5 vezes por segundo escreve no Monitor Serial (9600 baud): a leitura de cada eixo
-// (0 a 1023), a faixa em que ela cai, o palito para onde cada controle aponta e os botões
-// apertados. As faixas são as mesmas do modo posição do broken_grid_periferico.
+// No Monitor Serial (9600 baud), escreve o nome de cada botão quando ele é apertado e
+// quando é solto. 5 vezes por segundo mostra também quais estão apertados agora. Serve
+// para conferir se cada botão está no pino certo e se nenhum ficou em curto (aparecendo
+// apertado sem ninguém mexer).
 //
-// Serve para conferir o sentido dos potenciômetros: girando para a "direita" a coluna tem
-// que aumentar, e para "baixo" a linha tem que aumentar. Se algum eixo estiver ao
-// contrário, põe true na posição dele em INVERTER (aqui e no periférico, ordem H-X, H-Y,
-// V-X, V-Y).
-//
-// Ligação (Uno): controle H  X->A0  Y->A1   controle V  X->A2  Y->A3
-//   potenciômetro: pontas no 5V e no GND, perna do meio no pino analógico
-//   REMOVER D2, VOLTAR D3, SOLUCAO D4, NOVO D5, com o outro terminal do botão no GND
+// Ligação (Uno), um terminal do botão no pino e o outro no GND:
+//   REMOVER D2, VOLTAR D3, SOLUCAO D4, NOVO D5, DIREITA D7, BAIXO D8
+// (D6 fica para os LEDs)
 
-const uint8_t N = 4;
-const uint8_t EIXOS[4] = {A0, A1, A2, A3};
-const char *NOMES[4] = {"H-X", "H-Y", "V-X", "V-Y"};
-const bool INVERTER[4] = {true, false, true, false};   // tem que bater com o do periférico
-// controle H: X escolhe a coluna (0..3), Y a linha (0..4); controle V: X a coluna (0..4), Y a linha (0..3)
-const uint8_t FAIXAS[4] = {N, N + 1, N + 1, N};
-const uint8_t NUM_BOTOES = 4;
-const uint8_t BOTOES[NUM_BOTOES] = {2, 3, 4, 5};
-const char *NOMES_BOTAO[NUM_BOTOES] = {"REMOVER", "VOLTAR", "SOLUCAO", "NOVO"};
+const uint8_t NUM_BOTOES = 6;
+const uint8_t BOTOES[NUM_BOTOES] = {2, 3, 4, 5, 7, 8};
+const char *NOMES_BOTAO[NUM_BOTOES] = {"REMOVER", "VOLTAR", "SOLUCAO", "NOVO", "DIREITA", "BAIXO"};
+const uint16_t DEBOUNCE_MS = 25;
+const uint16_t RESUMO_MS = 200;
 
-int lerEixo(uint8_t e) {
-  int v = analogRead(EIXOS[e]);
-  return INVERTER[e] ? 1023 - v : v;
-}
-
-// mesma conta do firmware periférico, sem a histerese
-uint8_t faixaDe(int valor, uint8_t faixas) {
-  uint8_t f = (int32_t)valor * faixas / 1024;
-  return f >= faixas ? faixas - 1 : f;
-}
+bool apertado[NUM_BOTOES];
+bool leituraAnterior[NUM_BOTOES];
+uint32_t mudouEm[NUM_BOTOES];
+uint32_t proximoResumo = 0;
 
 void setup() {
   Serial.begin(9600);
-  for (uint8_t i = 0; i < NUM_BOTOES; i++) pinMode(BOTOES[i], INPUT_PULLUP);
-  Serial.println(F("TESTE_CONTROLES pronto: gire os potenciometros e aperte os botoes"));
+  for (uint8_t i = 0; i < NUM_BOTOES; i++) {
+    pinMode(BOTOES[i], INPUT_PULLUP);
+    apertado[i] = leituraAnterior[i] = false;
+    mudouEm[i] = 0;
+  }
+  Serial.println(F("TESTE_CONTROLES pronto: aperte os botoes"));
 }
 
 void loop() {
-  uint8_t faixa[4];
-  for (uint8_t e = 0; e < 4; e++) {
-    int v = lerEixo(e);
-    faixa[e] = faixaDe(v, FAIXAS[e]);
-    Serial.print(NOMES[e]); Serial.print('='); Serial.print(v);
-    Serial.print('('); Serial.print(faixa[e]); Serial.print(F(")  "));
-  }
-  // palito apontado: h:linha:coluna e v:linha:coluna
-  Serial.print(F("-> h:")); Serial.print(faixa[1]); Serial.print(':'); Serial.print(faixa[0]);
-  Serial.print(F("  v:")); Serial.print(faixa[3]); Serial.print(':'); Serial.print(faixa[2]);
-  Serial.print(F("  "));
+  uint32_t agora = millis();
   for (uint8_t i = 0; i < NUM_BOTOES; i++) {
-    if (digitalRead(BOTOES[i]) == LOW) { Serial.print(NOMES_BOTAO[i]); Serial.print(' '); }
+    bool leitura = digitalRead(BOTOES[i]) == LOW;  // INPUT_PULLUP: apertado = LOW
+    if (leitura != leituraAnterior[i]) { leituraAnterior[i] = leitura; mudouEm[i] = agora; }
+    if (agora - mudouEm[i] >= DEBOUNCE_MS && leitura != apertado[i]) {
+      apertado[i] = leitura;
+      Serial.print(NOMES_BOTAO[i]);
+      Serial.print(F(" (D"));
+      Serial.print(BOTOES[i]);
+      Serial.println(leitura ? F(") apertado") : F(") solto"));
+    }
   }
-  Serial.println();
-  delay(200);
+  if ((int32_t)(agora - proximoResumo) >= 0) {
+    proximoResumo = agora + RESUMO_MS;
+    bool algum = false;
+    for (uint8_t i = 0; i < NUM_BOTOES; i++) {
+      if (!apertado[i]) continue;
+      if (!algum) Serial.print(F("  segurando: "));
+      Serial.print(NOMES_BOTAO[i]);
+      Serial.print(' ');
+      algum = true;
+    }
+    if (algum) Serial.println();
+  }
 }

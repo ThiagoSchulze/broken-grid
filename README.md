@@ -257,24 +257,33 @@ no caminho padrão, defina `CHROME` com o executável. Para medir grades maiores
 ## Tabuleiro físico
 
 Um tabuleiro 4×4 leva o jogo para fora do navegador. A especificação fechada está em
-`docs/Instrulçoes.txt`: cada palito é um LED WS2812B (40 no total, em zigue-zague), há dois
-joysticks (H e V) e três botões (REMOVER, VOLTAR e SOLUÇÃO). No tabuleiro final o PC é o
-cérebro e o Arduino Nano é só periférico via Web Serial.
+`docs/Instrulçoes.txt`: cada palito é um LED WS2812B (40 no total, em zigue-zague). O cursor
+anda com dois botões, DIREITA e BAIXO, e a jogada usa os botões REMOVER, VOLTAR, SOLUÇÃO e
+NOVO GRID. No tabuleiro final o PC é o cérebro e o Arduino Uno é só periférico via Web Serial.
+
+O cursor só para em palito removível. **DIREITA** vai para o próximo removível da mesma
+fileira e, no fim, volta ao começo dela. **BAIXO** desce para a próxima fileira, alternando
+entre uma fileira de horizontais e uma de verticais (h0, v0, h1, v1, …, h4), no palito mais
+perto da posição atual; depois da última fileira volta à primeira. Fileiras sem removível
+são puladas. Os botões de movimento repetem quando ficam apertados (500 ms, depois a cada
+250 ms). Essa troca (dois botões no lugar dos joysticks/potenciômetros) foi pedida pelo
+professor.
 
 Antes da montagem, `hardware/broken_grid/broken_grid.ino` roda o jogo inteiro só no Arduino
 para validar fiação, ordem dos LEDs e cursor no Tinkercad (Arduino Uno + 40 NeoPixels +
-4 potenciômetros no lugar dos joysticks + 3 botões). O circuito está salvo no Tinkercad como
+5 botões). O circuito está salvo no Tinkercad como
 **"Broken Grid 4x4 - Tabuleiro (Tinkercad)"**
-(https://www.tinkercad.com/things/33evPOPHUoC), com o sketch já carregado. Os potenciômetros,
-da esquerda para a direita, são H-X (A0), H-Y (A1), V-X (A2) e V-Y (A3); os botões REMOVER,
-VOLTAR e SOLUÇÃO ficam em D2, D3 e D4, com `INPUT_PULLUP`.
+(https://www.tinkercad.com/things/33evPOPHUoC). Os botões ficam em REMOVER D2, VOLTAR D3,
+SOLUÇÃO D4, DIREITA D7 e BAIXO D8, todos entre o pino e o GND, com `INPUT_PULLUP`.
+O circuito salvo ainda tem os 4 potenciômetros: é preciso trocá-los pelos botões DIREITA e
+BAIXO e colar o sketch novo.
 
 ```bash
 node tools/gerar-grades-arduino.mjs        # data/grids/4x4.json -> bloco GRADES do sketch
 ```
 
-Pelo Monitor Serial dá para jogar sem mexer nos controles: `H D`, `H E`, `H C`, `H B`
-(joystick H para direita, esquerda, cima, baixo), o mesmo com `V`, `REMOVER [id]`,
+Pelo Monitor Serial dá para jogar sem mexer nos controles: `DIREITA` (ou `D`), `BAIXO`
+(ou `B`), `REMOVER [id]`,
 `VOLTAR`, `SOLUCAO`, `NOVA`, `GRADE n` e `ESTADO`. O Monitor Serial do Tinkercad envia sem
 quebra de linha, então o sketch fecha o comando após 400 ms sem novos caracteres.
 
@@ -292,17 +301,14 @@ O que o simulador obrigou a fazer diferente da montagem real:
   real: cursor branco piscando e removido apagado, como na especificação.
 - **Protótipos de função na linha 1.** O Tinkercad insere os protótipos antes de qualquer
   `typedef`, `enum` ou `struct`, então as assinaturas usam só tipos nativos.
-- **Joysticks calibrados ao ligar.** Girar um potenciômetro durante a simulação grava a
-  posição no projeto; medindo o centro no `setup`, um knob esquecido fora do meio não move
-  o cursor sozinho.
 - **Aba visível.** Com a aba do Tinkercad em segundo plano, o Chrome derruba a simulação
   para cerca de 2% do tempo real.
 
 ### Ponte com o tabuleiro (tabuleiro final)
 
 No tabuleiro final o jogo do navegador é o cérebro e o **Arduino Uno** é só periférico:
-`hardware/broken_grid_periferico/broken_grid_periferico.ino` lê os 4 potenciômetros e os 4
-botões (REMOVER D2, VOLTAR D3, SOLUÇÃO D4 e NOVO GRID D5) e acende os LEDs que o PC mandar. O protocolo completo está no cabeçalho do `.ino`.
+`hardware/broken_grid_periferico/broken_grid_periferico.ino` lê os 6 botões (REMOVER D2,
+VOLTAR D3, SOLUÇÃO D4, NOVO GRID D5, DIREITA D7 e BAIXO D8) e acende os LEDs que o PC mandar. O protocolo completo está no cabeçalho do `.ino`.
 
 1. Na Arduino IDE, instale a biblioteca **Adafruit NeoPixel**, escolha a placa **Arduino Uno**,
    abra o `.ino` e clique em **Upload**.
@@ -312,11 +318,11 @@ botões (REMOVER D2, VOLTAR D3, SOLUÇÃO D4 e NOVO GRID D5) e acende os LEDs qu
    O Uno reinicia ao abrir a porta; em ~1 s o cartão mostra **Conectado** e o jogo vai para
    uma grade 4×4. A cada quadro recebido o LED **L** da placa pisca.
 
-Sem os controles, o teclado faz o papel deles: setas = controle H, W A S D = controle V,
-Enter = REMOVER, Backspace = VOLTAR, X = SOLUÇÃO, N = NOVO GRID. Com os potenciômetros ligados, mude
-`POTENCIOMETROS_LIGADOS` para `true` no firmware (com os pinos soltos a leitura é ruído).
-`MODO_POSICAO = true` faz a posição de cada potenciômetro escolher a linha e a coluna do
-cursor; `false` imita um joystick.
+Sem os controles, o teclado faz o papel deles: seta → = DIREITA, seta ↓ = BAIXO (← e ↑ fazem
+o caminho inverso, só no teclado), Enter = REMOVER, Backspace = VOLTAR, X = SOLUÇÃO,
+N = NOVO GRID. Para conferir a fiação dos botões antes de fechar a caixa,
+`hardware/teste_controles/teste_controles.ino` escreve no Monitor Serial (9600 baud) cada
+botão apertado e solto.
 
 O PC só manda o próximo quadro de LEDs depois do `OK` do Uno e reenvia após `ERRO` ou
 silêncio: `leds.show()` desliga as interrupções por ~1,2 ms e bytes que chegam nesse
