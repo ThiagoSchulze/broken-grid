@@ -20,6 +20,8 @@
   --palito: #000000;
   --palito-bloqueado: #9c9284;
   --palito-quebrado: #d5d3cd;
+  /* palitos da solução: ciano, igual ao LED do tabuleiro (o vermelho lá é bloqueado) */
+  --palito-solucao: #0891b2;
 
   --raio: 10px;
   --espaco-1: 6px;

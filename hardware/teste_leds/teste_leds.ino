@@ -30,13 +30,16 @@ uint32_t ultimoPasso = 0;
 char linha[16];
 uint8_t tam = 0;
 
-// mesma fórmula do jogo:  h:r:c -> 9r + c     v:r:c -> 9r + 4 + (4 - c)
-bool ehHorizontal(uint8_t p) { return p / 9 == 4 || p % 9 < 4; }
+// Ordem da fita montada: zigue-zague por COLUNAS (a mesma de ordemDaFita() em
+// src/tabuleiro/protocolo.js). Em cada coluna c: os 4 verticais de cima para baixo, depois
+// os 5 horizontais daquela coluna de baixo para cima.
+//   v:r:c -> 9c + r          h:r:c -> 9c + 4 + (4 - r)
+bool ehHorizontal(uint8_t p) { return p % 9 >= 4; }
 
 void imprimirId(uint8_t p) {
-  uint8_t r = p / 9;
-  if (ehHorizontal(p)) { Serial.print(F("h:")); Serial.print(r); Serial.print(':'); Serial.print(p % 9); }
-  else                 { Serial.print(F("v:")); Serial.print(r); Serial.print(':'); Serial.print(8 - p % 9); }
+  uint8_t c = p / 9, k = p % 9;
+  if (ehHorizontal(p)) { Serial.print(F("h:")); Serial.print(8 - k); Serial.print(':'); Serial.print(c); }
+  else                 { Serial.print(F("v:")); Serial.print(k); Serial.print(':'); Serial.print(c); }
 }
 
 void mostrar(uint8_t p) {

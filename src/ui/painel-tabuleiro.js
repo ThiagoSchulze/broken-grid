@@ -31,8 +31,8 @@ export function criarPainelTabuleiro(elemento, { suportado, aoConectar, aoDescon
 
   const atalhos = document.createElement('p');
   atalhos.className = 'painel-tabuleiro__atalhos';
-  atalhos.textContent = 'Teclado (faz o papel dos controles): → = direita · ↓ = baixo (← e ↑ voltam) · '
-    + 'Enter = remover · Backspace = voltar · X = solução · N = novo grid';
+  atalhos.textContent = 'Teclado: Backspace = voltar · X = solução · N = novo grid. Com o tabuleiro conectado, '
+    + 'também → = direita · ↓ = baixo (← e ↑ voltam) · Enter = remover';
 
   elemento.append(titulo, situacao, detalhe, botao, atalhos);
 

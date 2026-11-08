@@ -15,11 +15,12 @@ Broken Grid: jogo de lógica (variação do Killing Squares) de uma disciplina d
 
 ## Cores dos LEDs
 - removível: branco | bloqueado: vermelho | quebrado: apagado | removido: apagado
+- Na tela do jogo a solução também é ciano (não vermelho), para bater com o tabuleiro.
 - cursor: branco piscando | solução: ciano | vitória: verde
 
 ## Regras do cursor
 - Só para em palito removível; pula bloqueados, quebrados e removidos.
-- "Fileira" é uma linha de palitos da mesma orientação, na ordem da corrente de LEDs: h0, v0, h1, v1, h2, v2, h3, v3, h4 (9 fileiras; as horizontais têm 4 palitos e as verticais 5).
+- "Fileira" é uma linha de palitos da mesma orientação, de cima para baixo: h0, v0, h1, v1, h2, v2, h3, v3, h4 (9 fileiras; as horizontais têm 4 palitos e as verticais 5).
 - DIREITA: vai para o próximo removível da mesma fileira; no fim da fileira volta ao começo dela. Se não houver outro removível, fica parado.
 - BAIXO: desce para a próxima fileira que tenha algum removível, alternando entre horizontais e verticais, no palito mais perto da posição atual (empate: mesmo número de coluna). Depois da última fileira volta à primeira.
 - Segurando DIREITA ou BAIXO, o movimento repete (depois de 500 ms, a cada 250 ms).
@@ -30,10 +31,10 @@ Broken Grid: jogo de lógica (variação do Killing Squares) de uma disciplina d
 - Cada plaquinha tem 6 pontos de solda: +5V e +5V, DIN e DO, GND e GND. Os dois +5V são ligados entre si, assim como os dois GND. O dado entra no DIN e sai no DO (seguir a seta impressa).
 - Ligação: os DADOS vão em série numa corrente única (DO de um no DIN do próximo); a ALIMENTAÇÃO vai em paralelo (todos no mesmo 5V/GND). São 3 fios entre cada LED.
 - Não existe endereço gravado: o "endereço" é a posição na corrente (LED 0 a 39).
-- Ordem da corrente (zigue-zague): linha de horizontais da esquerda para a direita, depois a linha de verticais logo abaixo da direita para a esquerda, e assim por diante.
+- Ordem da corrente (como a fita foi soldada): por colunas. Em cada coluna, os 4 verticais de cima para baixo e depois os 5 horizontais daquela coluna de baixo para cima; então a coluna seguinte. (A especificação previa zigue-zague por linhas; isso deixava o tabuleiro espelhado na diagonal, e o jogo passou a mandar os LEDs na ordem real da fita: FITA_ESPELHADA em src/tabuleiro/protocolo.js.)
 - Fórmula do índice, com palitos identificados como h:linha:coluna e v:linha:coluna:
-  h:r:c → r*9 + c
-  v:r:c → r*9 + 4 + (4 - c)
+  v:r:c → c*9 + r
+  h:r:c → c*9 + 4 + (4 - r)
 
 ## Elétrica (Arduino Uno)
 - D6 → resistor de 330 Ω → DIN do LED 0

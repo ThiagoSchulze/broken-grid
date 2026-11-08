@@ -257,7 +257,7 @@ no caminho padrão, defina `CHROME` com o executável. Para medir grades maiores
 ## Tabuleiro físico
 
 Um tabuleiro 4×4 leva o jogo para fora do navegador. A especificação fechada está em
-`docs/Instrulçoes.txt`: cada palito é um LED WS2812B (40 no total, em zigue-zague). O cursor
+`docs/Instrulçoes.txt`: cada palito é um LED WS2812B (40 no total, numa corrente única). O cursor
 anda com dois botões, DIREITA e BAIXO, e a jogada usa os botões REMOVER, VOLTAR, SOLUÇÃO e
 NOVO GRID. No tabuleiro final o PC é o cérebro e o Arduino Uno é só periférico via Web Serial.
 
@@ -318,9 +318,20 @@ VOLTAR D3, SOLUÇÃO D4, NOVO GRID D5, DIREITA D7 e BAIXO D8) e acende os LEDs q
    O Uno reinicia ao abrir a porta; em ~1 s o cartão mostra **Conectado** e o jogo vai para
    uma grade 4×4. A cada quadro recebido o LED **L** da placa pisca.
 
-Sem os controles, o teclado faz o papel deles: seta → = DIREITA, seta ↓ = BAIXO (← e ↑ fazem
-o caminho inverso, só no teclado), Enter = REMOVER, Backspace = VOLTAR, X = SOLUÇÃO,
-N = NOVO GRID. Para conferir a fiação dos botões antes de fechar a caixa,
+O cursor só existe com o tabuleiro conectado: sem ele, a tela não mostra palito selecionado e a
+jogada é feita com o mouse. Conectado, o teclado serve de atalho: seta → = DIREITA, seta ↓ =
+BAIXO (← e ↑ fazem o caminho inverso, só no teclado) e Enter = REMOVER. Backspace = VOLTAR,
+X = SOLUÇÃO e N = NOVO GRID valem sempre. Na solução, os palitos a remover aparecem em ciano na
+tela e no tabuleiro (o vermelho é só para bloqueado).
+
+A fita do tabuleiro montado foi soldada **por colunas** (em cada coluna, os verticais de cima
+para baixo e depois os horizontais de baixo para cima), e não no zigue-zague por linhas da
+especificação. O jogo manda as cores já nessa ordem (`ordemDaFita` em
+`src/tabuleiro/protocolo.js`): `v:r:c → 9c + r`, `h:r:c → 9c + 4 + (4 − r)`. Se a fita for
+refeita na ordem da especificação, mude `FITA_ESPELHADA` para `false`.
+
+Para conferir a ordem durante a soldagem, `hardware/teste_leds/teste_leds.ino` acende um LED
+por vez e diz qual palito ele deveria ser. Para conferir a fiação dos botões antes de fechar a caixa,
 `hardware/teste_controles/teste_controles.ino` escreve no Monitor Serial (9600 baud) cada
 botão apertado e solto.
 

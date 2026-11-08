@@ -10,6 +10,9 @@
 // assim por diante.
 //   h:r:c -> r*9 + c          v:r:c -> r*9 + 4 + (4 - c)
 // Os ids h:r:c / v:r:c são os mesmos de src/core/geometry.js.
+// Esta é a ordem do circuito do Tinkercad. A fita do tabuleiro montado foi soldada por
+// colunas (v:r:c -> 9c + r, h:r:c -> 9c + 4 + (4 - r)); por isso este sketch não serve
+// para conferir a ordem dos LEDs na placa real (para isso, use o teste_leds).
 //
 // O Tinkercad não tem FastLED, então aqui é Adafruit_NeoPixel (mesmo brilho 80).
 

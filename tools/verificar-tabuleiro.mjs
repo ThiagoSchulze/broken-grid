@@ -12,7 +12,7 @@ import { criarPartida, estadoInicial } from '../src/core/engine.js';
 import {
   indiceNaCorrente, ordemDaCorrente, primeiroRemovivel, maisProximo, moverCursor, cursorValido,
 } from '../src/core/cursor.js';
-import { montarQuadro, interpretarLinha } from '../src/tabuleiro/protocolo.js';
+import { montarQuadro, interpretarLinha, ordemDaFita } from '../src/tabuleiro/protocolo.js';
 import { criarConexao, suportaWebSerial } from '../src/tabuleiro/serial.js';
 
 let total = 0;
@@ -132,22 +132,34 @@ function verificarProtocolo() {
 
   const q = montarQuadro({ estado: jogo, estadoOriginal: original, vista: 'jogo', cursor: 'h:0:0' });
   checar('formato "L " + 40 códigos', /^L [.wrcg*]{40}$/.test(q), q);
+  // fita montada em zigue-zague por colunas: h:r:c -> 9c + 4 + (4 - r), v:r:c -> 9c + r
+  const led = (id) => {
+    const [o, r, c] = id.split(':');
+    return o === 'h' ? 9 * Number(c) + 4 + (4 - Number(r)) : 9 * Number(c) + Number(r);
+  };
+  const fita = ordemDaFita(4);
+  checar('fita: 40 palitos, cada um uma vez', fita.length === 40 && new Set(fita).size === 40);
+  checar('fita: h:r:c -> 9c + 4 + (4 - r) e v:r:c -> 9c + r', fita.every((id, i) => led(id) === i));
+  checar('fita: LED 0 é v:0:0 e LED 4 é h:4:0', fita[0] === 'v:0:0' && fita[4] === 'h:4:0');
+
   const cod = q.slice(2);
-  checar('cursor no LED 0', cod[0] === '*');
-  checar('bloqueado h:1:1 em vermelho (LED 10)', cod[10] === 'r');
-  checar('quebrado v:0:1 apagado (LED 7)', cod[7] === '.');
-  checar('removível h:0:1 em branco (LED 1)', cod[1] === 'w');
+  checar('cursor h:0:0 no LED 8', cod[led('h:0:0')] === '*' && cod.indexOf('*') === 8);
+  checar('cursor h:3:3 da tela acende no h:3:3 da fita (foto "espelhado")',
+    montarQuadro({ estado: jogo, vista: 'jogo', cursor: 'h:3:3' }).slice(2).indexOf('*') === led('h:3:3'));
+  checar('bloqueado h:1:1 em vermelho', cod[led('h:1:1')] === 'r');
+  checar('quebrado v:0:1 apagado', cod[led('v:0:1')] === '.');
+  checar('removível h:0:1 em branco', cod[led('h:0:1')] === 'w');
 
   partida.removerPalito('h:0:2');
   const comRemovido = montarQuadro({ estado: partida.obterEstado(), vista: 'jogo', cursor: null }).slice(2);
-  checar('removido apagado (LED 2)', comRemovido[2] === '.');
+  checar('removido apagado', comRemovido[led('h:0:2')] === '.');
 
   const sol = montarQuadro({
     estado: partida.obterEstado(), estadoOriginal: original, vista: 'solucao', solucao: ['h:0:2', 'v:3:1'], cursor: 'h:0:0',
   }).slice(2);
-  checar('modo solução: palitos da solução em ciano', sol[2] === 'c' && sol[indiceNaCorrente('v:3:1', 4)] === 'c');
+  checar('modo solução: palitos da solução em ciano', sol[led('h:0:2')] === 'c' && sol[led('v:3:1')] === 'c');
   checar('modo solução: sem cursor', !sol.includes('*'));
-  checar('modo solução: usa a grade inicial (bloqueado continua vermelho)', sol[10] === 'r');
+  checar('modo solução: usa a grade inicial (bloqueado continua vermelho)', sol[led('h:1:1')] === 'r');
 
   for (const id of ['h:2:0', 'v:2:2', 'h:3:2', 'h:3:3', 'v:3:1']) partida.removerPalito(id);
   const vit = partida.obterEstado();

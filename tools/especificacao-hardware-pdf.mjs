@@ -29,10 +29,11 @@ const COR_LED = {
 
 // ---------------------------------------------------------------- geometria
 
-// corrente em zigue-zague: h:r:c -> r*9 + c, v:r:c -> r*9 + 4 + (4 - c)
+// ordem da fita montada (por colunas, igual a ordemDaFita em src/tabuleiro/protocolo.js):
+// v:r:c -> 9c + r, h:r:c -> 9c + 4 + (4 - r)
 function indiceDoLed(id) {
   const { orientacao, linha, coluna } = analisarId(id);
-  return orientacao === HORIZONTAL ? linha * (2 * N + 1) + coluna : linha * (2 * N + 1) + N + (N - coluna);
+  return orientacao === HORIZONTAL ? coluna * (2 * N + 1) + N + (N - linha) : coluna * (2 * N + 1) + linha;
 }
 
 function segmento(id, passo, x0, y0, folga) {
@@ -195,7 +196,7 @@ function svgBlocos() {
   <path d="M0 0L10 5L0 10z" fill="#c2410c"/></marker></defs>
   ${caixa(20, 20, 150, 76, 'Computador (cérebro)', ['regras · solver · cursor', 'cronômetro · estatísticas', 'Chrome/Edge + Web Serial'], '#eef4fc')}
   ${caixa(270, 120, 160, 80, 'Arduino Uno', ['ATmega328P · periférico', 'eventos ↑  cores dos LEDs ↓'], '#eef4fc')}
-  ${caixa(520, 120, 160, 80, 'Grade de LEDs', ['40 × WS2812B', 'corrente única em zigue-zague'], '#fdf3ec')}
+  ${caixa(520, 120, 160, 80, 'Grade de LEDs', ['40 × WS2812B', 'corrente única, por colunas'], '#fdf3ec')}
   ${caixa(20, 120, 150, 50, '2 botões de movimento', 'DIREITA D7 · BAIXO D8')}
   ${caixa(20, 190, 150, 64, '4 botões de jogada', ['REMOVER D2 · VOLTAR D3', 'SOLUÇÃO D4 · NOVO D5'])}
   ${caixa(520, 20, 160, 58, 'Fonte 5 V / 2–3 A', ['P4 + chave liga/desliga', '1000 µF na entrada'])}
@@ -320,7 +321,7 @@ ${nota ? `<p class="nota">${nota}</p>` : ''}</div>`;
 <section class="resumo">
   <h2 class="sem-numero">Resumo</h2>
   <p>O tabuleiro físico leva o <i>Broken Grid</i> para fora do navegador: uma grade 4×4 em que cada um dos
-  <b>40 palitos</b> é um LED endereçável WS2812B, ligados numa corrente única em zigue-zague. O jogador usa
+  <b>40 palitos</b> é um LED endereçável WS2812B, ligados numa corrente única. O jogador usa
   <b>dois botões de movimento</b> — <b>DIREITA</b> anda pela fileira e <b>BAIXO</b> desce para a próxima,
   alternando entre palitos horizontais e verticais — e <b>quatro botões de jogada</b>: <b>REMOVER</b>,
   <b>VOLTAR</b> (desfaz a última jogada), <b>SOLUÇÃO</b> (mostra a solução ótima sobre a grade inicial) e
@@ -409,17 +410,19 @@ ${figura(svgEsquema(), 'esquema elétrico. Os seis botões entre o pino e o GND 
 <h3>Mapa de palitos e LEDs</h3>
 <p>Não existe endereço gravado nos WS2812B: o “endereço” é a posição na corrente (LED 0 a 39). Os dados vão em
 série (DO de um no DIN do próximo, seguindo a seta impressa na plaquinha) e a alimentação vai em paralelo — são
-três fios entre cada LED. A corrente segue em <b>zigue-zague</b>: a linha de horizontais da esquerda para a
-direita, depois a linha de verticais logo abaixo da direita para a esquerda, e assim por diante. Com os palitos
-identificados como no jogo (<code>h:linha:coluna</code> e <code>v:linha:coluna</code>):</p>
-<p class="formula">h:r:c → 9·r + c      v:r:c → 9·r + 4 + (4 − c)</p>
+três fios entre cada LED. A especificação previa um zigue-zague por linhas, mas na montagem a fita foi soldada <b>por colunas</b>. Em cada coluna, primeiro os 4 verticais de cima para baixo, depois os 5 horizontais daquela coluna de baixo para cima; então passa para a coluna seguinte.
+Como a ordem por linhas espelhava a grade na diagonal em relação à tela, o jogo agora monta o quadro já na ordem
+da fita (<code>ordemDaFita</code> em <code>src/tabuleiro/protocolo.js</code>, chave <code>FITA_ESPELHADA</code>).
+Com os palitos identificados como no jogo (<code>h:linha:coluna</code> e <code>v:linha:coluna</code>):</p>
+<p class="formula">v:r:c → 9·c + r      h:r:c → 9·c + 4 + (4 − r)</p>
 ${figura(svgMapaLeds(), 'índice de cada LED na corrente (número branco) e identificador do palito (cinza), idêntico ao de <code>src/core/geometry.js</code>. A linha tracejada é o caminho dos dados, do LED 0 ao LED 39.')}
 
 <h3>Cursor</h3>
 <p>Só um cursor fica ativo por vez, e ele anda com dois botões. Uma <b>fileira</b> é uma linha de palitos da
-mesma orientação; na ordem da corrente de LEDs elas se alternam: h0, v0, h1, v1, h2, v2, h3, v3, h4 (9 fileiras,
+mesma orientação; de cima para baixo elas se alternam: h0, v0, h1, v1, h2, v2, h3, v3, h4 (9 fileiras,
 as horizontais com 4 palitos e as verticais com 5). No tabuleiro final as regras ficam em
-<code>src/core/cursor.js</code>, o mesmo código que o teclado usa no navegador. Regras:</p>
+<code>src/core/cursor.js</code>, o mesmo código que o teclado usa no navegador. O cursor só aparece com o tabuleiro conectado; sem ele, a
+jogada é feita com o mouse. Regras:</p>
 <ul>
   <li>O cursor só para em palito <b>removível</b>; pula bloqueados, quebrados e removidos.</li>
   <li><b>DIREITA</b>: vai para o próximo removível da mesma fileira; no fim da fileira volta ao começo dela. Se
@@ -445,7 +448,7 @@ ${tabela(['Elemento', 'Placa real', 'Simulador (Tinkercad)'], [
     ['solução de referência', 'ciano, sobre a grade inicial', 'ciano'],
     ['vitória', 'verde (palitos ainda presentes)', 'verde'],
   ], 'linguagem visual do tabuleiro',
-  'No Tinkercad um NeoPixel branco aceso quase não se distingue de um apagado; por isso o sketch tem a chave <code>CORES_DO_SIMULADOR</code> (true no Tinkercad, false na placa real).')}
+  'Na tela do jogo a solução também aparece em ciano, para não confundir com o vermelho, que no tabuleiro é bloqueado. No Tinkercad um NeoPixel branco aceso quase não se distingue de um apagado; por isso o sketch tem a chave <code>CORES_DO_SIMULADOR</code> (true no Tinkercad, false na placa real).')}
 ${figura(`<div class="telas">${telaJogo}${telaSolucao}${telaVitoria}</div>`, 'a grade g4-001 nos três modos, com as cores da placa real: em jogo (dois palitos removidos; o contorno marca o cursor piscando), modo solução (os 6 palitos da solução mínima em ciano) e vitória.')}
 
 <h2>Firmware do tabuleiro final</h2>
@@ -527,8 +530,9 @@ mesmo JSON) e a <b>formulação do solver</b>.</p>
   LEDs (seção 4); regras, cursor, cronômetro e estatísticas ficam no computador. No jogo, a ponte se divide em
   <code>src/tabuleiro/protocolo.js</code> (monta o quadro e interpreta as mensagens),
   <code>src/tabuleiro/serial.js</code> (conexão e controle de fluxo) e <code>src/core/cursor.js</code> (regras
-  do cursor), todos sem DOM. Mouse, teclado e tabuleiro passam pelas mesmas ações do jogo; sem os controles, o
-  teclado faz o papel deles (seta → = DIREITA, seta ↓ = BAIXO, ← e ↑ fazem o inverso, Enter = REMOVER, Backspace = VOLTAR, X = SOLUÇÃO, N = NOVO GRID). O tabuleiro
+  do cursor), todos sem DOM. Mouse, teclado e tabuleiro passam pelas mesmas ações do jogo. Com o tabuleiro
+  conectado, o teclado serve de atalho (seta → = DIREITA, seta ↓ = BAIXO, ← e ↑ fazem o inverso, Enter = REMOVER);
+  Backspace = VOLTAR, X = SOLUÇÃO e N = NOVO GRID valem sempre. Sem tabuleiro não há cursor: remove-se com o mouse. O tabuleiro
   só mostra grades 4×4: ao conectar o jogo muda para 4×4 e, em outros tamanhos, os LEDs ficam apagados.</li>
   <li><b>Protótipo do Tinkercad (pronto).</b> O sketch de teste joga sozinho e fala um protocolo de texto pela
   serial (9600 baud, um comando por linha), que permite jogar e acompanhar a partida pelo Monitor Serial.</li>
@@ -574,8 +578,8 @@ ${tabela(['Requisito', 'Como o hardware atende'], [
 pelos botões DIREITA (D7) e BAIXO (D8) e cole o código novo.</p>
 <h3>O que tem no circuito</h3>
 <ul>
-  <li><b>LEDs:</b> 40 NeoPixels, um no meio de cada palito, ligados em zigue-zague exatamente como serão soldados
-  (Figura 3), com três fios entre cada LED. As fileiras de 4 LEDs são palitos horizontais; as de 5, verticais.</li>
+  <li><b>LEDs:</b> 40 NeoPixels, um no meio de cada palito, ligados no zigue-zague por linhas da especificação
+  original (a placa montada foi soldada por colunas, Figura 3), com três fios entre cada LED. As fileiras de 4 LEDs são palitos horizontais; as de 5, verticais.</li>
   <li><b>Arduino Uno R3</b>, a mesma placa da montagem: D6 → 330 Ω → LED 0.</li>
   <li><b>Botões:</b> 5, entre o pino e o GND: REMOVER (D2), VOLTAR (D3), SOLUÇÃO (D4), DIREITA (D7) e BAIXO (D8).
   Não há NOVO GRID; pela serial, <code>NOVA</code> faz o mesmo.</li>

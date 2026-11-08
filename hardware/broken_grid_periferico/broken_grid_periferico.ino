@@ -38,7 +38,9 @@
 //     cada botão: um terminal no pino, o outro no GND (INPUT_PULLUP, sem resistor)
 //   LEDs na fonte de 5 V separada, com GND comum. Nunca ligar essa fonte no 5V do Uno.
 //
-// Fita em zigue-zague:  h:r:c -> r*9 + c      v:r:c -> r*9 + 4 + (4 - c)
+// O Uno só acende o LED i com o i-ésimo código do quadro; quem decide qual palito fica em
+// cada LED é o PC (ordemDaFita em src/tabuleiro/protocolo.js). A fita montada é um
+// zigue-zague por colunas:  v:r:c -> 9c + r      h:r:c -> 9c + 4 + (4 - r)
 
 #include <Adafruit_NeoPixel.h>
 

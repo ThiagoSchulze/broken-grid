@@ -3,9 +3,32 @@
 
 import { ESTADOS } from '../core/rules.js';
 import { ordemDaCorrente } from '../core/cursor.js';
+import { analisarId, idPalito, HORIZONTAL, VERTICAL } from '../core/geometry.js';
 
 export const BAUD = 115200;
 export const N_DO_TABULEIRO = 4;
+
+// A fita do tabuleiro montado foi soldada em zigue-zague por COLUNAS, não por linhas: é a
+// corrente de ordemDaCorrente() espelhada na diagonal (linha <-> coluna, horizontal <->
+// vertical). Sem corrigir, o tabuleiro mostrava a grade espelhada em relação à tela.
+// Para n = 4, o LED de cada palito na fita montada é:
+//   h:r:c -> 9c + 4 + (4 - r)      v:r:c -> 9c + r
+// Pôr false se a fita for refeita na ordem da especificação (h:r:c -> 9r + c).
+export const FITA_ESPELHADA = true;
+
+function espelharNaDiagonal(id) {
+  const p = analisarId(id);
+  return idPalito(p.orientacao === HORIZONTAL ? VERTICAL : HORIZONTAL, p.coluna, p.linha);
+}
+
+const ordensDaFita = new Map();
+
+// palito que fica em cada LED da fita montada (LED 0, LED 1, ...)
+export function ordemDaFita(n) {
+  if (!FITA_ESPELHADA) return ordemDaCorrente(n);
+  if (!ordensDaFita.has(n)) ordensDaFita.set(n, Object.freeze(ordemDaCorrente(n).map(espelharNaDiagonal)));
+  return ordensDaFita.get(n);
+}
 
 export const CODIGOS = Object.freeze({
   APAGADO: '.',
@@ -35,7 +58,7 @@ function estaPresente(situacao) {
 // Grade de outro tamanho que não o do tabuleiro: tudo apagado.
 export function montarQuadro({ estado, estadoOriginal = null, vista = 'jogo', solucao = null, cursor = null }) {
   const n = N_DO_TABULEIRO;
-  const ordem = ordemDaCorrente(n);
+  const ordem = ordemDaFita(n);
   if (!estado || estado.n !== n) return `L ${CODIGOS.APAGADO.repeat(ordem.length)}`;
 
   let codigos;

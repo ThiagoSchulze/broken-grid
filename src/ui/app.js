@@ -18,8 +18,8 @@ import { criarConexao, suportaWebSerial } from '../tabuleiro/serial.js';
 
 const TAMANHO_INICIAL = 4;
 
-// teclado no lugar dos botões do tabuleiro: seta direita = DIREITA, seta para baixo = BAIXO.
-// Esquerda e cima fazem o caminho inverso (o tabuleiro não tem esses botões).
+// teclado como atalho dos botões do tabuleiro (só com o tabuleiro conectado): seta direita =
+// DIREITA, seta para baixo = BAIXO. Esquerda e cima fazem o caminho inverso.
 const TECLAS_DIRECAO = { ArrowRight: 'direita', ArrowDown: 'baixo', ArrowLeft: 'esquerda', ArrowUp: 'cima' };
 
 export async function iniciarAplicacao(documento) {
@@ -94,9 +94,12 @@ export async function iniciarAplicacao(documento) {
     },
     aoMudar: (info) => {
       const acabouDeConectar = info.situacao === 'conectado' && infoConexao.situacao !== 'conectado';
+      const mudouConexao = (info.situacao === 'conectado') !== tabuleiroConectado();
       infoConexao = info;
       // o tabuleiro físico é 4x4: ao conectar, o jogo vai para uma grade desse tamanho
       if (acabouDeConectar && store.obter().config?.n !== N_DO_TABULEIRO) trocarTamanho(N_DO_TABULEIRO);
+      // o cursor só aparece com o tabuleiro conectado: ao conectar ou desconectar, redesenha
+      else if (mudouConexao) desenhar();
       renderizarPainel();
     },
   });
@@ -122,8 +125,14 @@ export async function iniciarAplicacao(documento) {
     return Boolean(jogo) && store.obter().vista === 'jogo' && jogo.obterEstado().status !== 'vencido';
   }
 
+  // Sem tabuleiro, a jogada é pelo mouse: não existe cursor (nem na tela, nem no teclado).
+  function tabuleiroConectado() {
+    return infoConexao.situacao === 'conectado';
+  }
+
   function cursorAtual() {
-    return jogo ? cursorValido(jogo.obterEstado(), store.obter().cursor) : null;
+    if (!jogo || !tabuleiroConectado()) return null;
+    return cursorValido(jogo.obterEstado(), store.obter().cursor);
   }
 
   function remover(id = cursorAtual()) {
@@ -163,10 +172,10 @@ export async function iniciarAplicacao(documento) {
     const tecla = evento.key.length === 1 ? evento.key.toLowerCase() : evento.key;
 
     if (Object.hasOwn(TECLAS_DIRECAO, tecla)) {
-      if (store.obter().vista !== 'jogo') return;
+      if (store.obter().vista !== 'jogo' || !tabuleiroConectado()) return;
       evento.preventDefault();
       moverCursor(TECLAS_DIRECAO[tecla]);
-    } else if (tecla === 'Enter' && !emControle) {
+    } else if (tecla === 'Enter' && !emControle && tabuleiroConectado()) {
       evento.preventDefault();
       remover();
     } else if (tecla === 'Backspace') {
@@ -267,7 +276,7 @@ export async function iniciarAplicacao(documento) {
     // no modo solucao a tela inteira descreve a grade original, nao a partida
     const estadoExibido = emSolucao ? (ui.estadoOriginal ?? estadoJogo) : estadoJogo;
     const emJogada = ui.vista === 'jogo' && estadoJogo.status !== 'vencido';
-    const cursor = emJogada ? cursorValido(estadoJogo, ui.cursor) : null;
+    const cursor = emJogada && tabuleiroConectado() ? cursorValido(estadoJogo, ui.cursor) : null;
 
     tabuleiro.renderizar(estadoExibido, {
       solucao: emSolucao ? ui.solucao?.palitos : null,

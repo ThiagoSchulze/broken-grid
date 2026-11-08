@@ -16,7 +16,7 @@
 .palito--bloqueado .palito__linha { stroke: var(--palito-bloqueado); stroke-width: 6; }
 .palito--quebrado .palito__linha { stroke: var(--palito-quebrado); stroke-width: 3; stroke-dasharray: 4 6; }
 .palito--removido { display: none; }
-.palito--solucao .palito__linha { stroke: var(--solucao); stroke-width: 6; }
+.palito--solucao .palito__linha { stroke: var(--palito-solucao); stroke-width: 6; }
 
 /* cursor dos controles (tabuleiro físico ou teclado): pisca como o LED */
 .palito--cursor .palito__linha {
